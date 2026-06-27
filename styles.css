@@ -1,0 +1,249 @@
+:root {
+  color-scheme: dark;
+  --bg: #08090d;
+  --panel: #121621;
+  --panel-border: #273044;
+  --text: #f4f7fb;
+  --muted: #9ca9bd;
+  --red: #ff3b4d;
+  --blue: #2f7dff;
+  --gold: #ffd166;
+  --green: #3ddc97;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 59, 77, 0.16), transparent 24rem),
+    radial-gradient(circle at 80% 0%, rgba(47, 125, 255, 0.18), transparent 26rem),
+    linear-gradient(180deg, #07080c 0%, #10131c 100%);
+  color: var(--text);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: #f5f7fb;
+  color: #0b0f18;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+.game-shell {
+  width: min(100%, 980px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 18px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 14px;
+}
+
+.hud,
+.controls {
+  display: grid;
+  gap: 10px;
+}
+
+.hud {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.team-panel,
+.round-panel,
+.controls {
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(18, 22, 33, 0.88);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+}
+
+.team-panel {
+  padding: 10px;
+}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.red .team-row span {
+  color: var(--red);
+}
+
+.blue .team-row span {
+  color: var(--blue);
+}
+
+.bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bar span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 160ms ease;
+}
+
+#redHealth {
+  background: linear-gradient(90deg, #ff7480, var(--red));
+}
+
+#blueHealth {
+  background: linear-gradient(90deg, #74adff, var(--blue));
+}
+
+.round-panel {
+  min-width: 190px;
+  padding: 10px 14px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.round-panel strong {
+  font-size: 0.82rem;
+  color: var(--gold);
+}
+
+.round-panel span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-wrap {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #242b3d;
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    #030408;
+  background-size: 42px 42px;
+}
+
+canvas {
+  width: min(100%, 82vh);
+  max-width: 100%;
+  aspect-ratio: 1;
+  display: block;
+}
+
+.winner-banner {
+  position: absolute;
+  inset: auto 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 10, 16, 0.9);
+  backdrop-filter: blur(12px);
+}
+
+.winner-banner span {
+  color: var(--gold);
+  font-size: clamp(1.1rem, 4vw, 1.9rem);
+  font-weight: 950;
+}
+
+.hidden {
+  display: none;
+}
+
+.controls {
+  grid-template-columns: 110px 110px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  padding: 10px;
+}
+
+.control-field {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(86px, 1fr) 54px;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.control-field strong {
+  color: var(--text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--green);
+}
+
+@media (max-width: 720px) {
+  .game-shell {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .hud {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .round-panel {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .control-field {
+    grid-column: 1 / -1;
+  }
+
+  canvas {
+    width: min(100%, 72vh);
+  }
+
+  .winner-banner {
+    flex-direction: column;
+    inset: auto 12px 16px;
+  }
+}

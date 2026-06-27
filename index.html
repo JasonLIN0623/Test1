@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Red vs Blue Last Ball Standing</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="hud" aria-label="戰況">
+        <div class="team-panel red">
+          <div class="team-row">
+            <span>RED</span>
+            <strong id="redCount">0</strong>
+          </div>
+          <div class="bar" aria-hidden="true">
+            <span id="redHealth"></span>
+          </div>
+        </div>
+
+        <div class="round-panel">
+          <strong id="roundStatus">LAST BALL STANDING</strong>
+          <span id="timer">00:00</span>
+        </div>
+
+        <div class="team-panel blue">
+          <div class="team-row">
+            <span>BLUE</span>
+            <strong id="blueCount">0</strong>
+          </div>
+          <div class="bar" aria-hidden="true">
+            <span id="blueHealth"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="arena-wrap" aria-label="遊戲區域">
+        <canvas id="gameCanvas" width="900" height="900"></canvas>
+        <div id="winnerBanner" class="winner-banner hidden">
+          <span id="winnerText">RED WINS</span>
+          <button id="playAgainButton" type="button">再戰一局</button>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="控制列">
+        <button id="startButton" type="button">開始</button>
+        <button id="resetButton" type="button">重置</button>
+        <label class="control-field">
+          <span>球數</span>
+          <input id="ballCountInput" type="range" min="3" max="12" value="7" />
+          <strong id="ballCountValue">7</strong>
+        </label>
+        <label class="control-field">
+          <span>速度</span>
+          <input id="speedInput" type="range" min="70" max="150" value="100" />
+          <strong id="speedValue">100%</strong>
+        </label>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>

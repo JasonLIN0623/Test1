@@ -32,12 +32,15 @@ const teamConfig = {
 
 const state = {
   balls: [],
+  pickups: [],
+  projectiles: [],
   particles: [],
   running: false,
   startedAt: 0,
   elapsedBeforePause: 0,
   lastFrameTime: 0,
   winner: null,
+  nextPickupIn: 1.2,
   arena: {
     x: 450,
     y: 450,
@@ -49,6 +52,76 @@ const state = {
 const maxHealth = 100;
 const damagePerHit = 14;
 const hitCooldown = 0.38;
+const maxPickups = 7;
+
+const weaponConfig = {
+  pistol: {
+    label: "PISTOL",
+    icon: "P",
+    color: "#f7f7ff",
+    damage: 18,
+    range: 250,
+    cooldown: 0.7,
+    projectileSpeed: 520,
+    ammo: 8,
+    pellets: 1,
+    spread: 0,
+    recoil: 70,
+  },
+  shotgun: {
+    label: "SHOTGUN",
+    icon: "S",
+    color: "#ff9f1c",
+    damage: 10,
+    range: 190,
+    cooldown: 1.05,
+    projectileSpeed: 430,
+    ammo: 5,
+    pellets: 5,
+    spread: 0.5,
+    recoil: 135,
+  },
+  sniper: {
+    label: "SNIPER",
+    icon: "N",
+    color: "#7bdff2",
+    damage: 42,
+    range: 430,
+    cooldown: 1.55,
+    projectileSpeed: 760,
+    ammo: 4,
+    pellets: 1,
+    spread: 0,
+    recoil: 210,
+  },
+};
+
+const pickupConfig = {
+  pistol: {
+    label: "手槍",
+    icon: "P",
+    color: "#f7f7ff",
+    weight: 3,
+  },
+  shotgun: {
+    label: "散彈槍",
+    icon: "S",
+    color: "#ff9f1c",
+    weight: 2,
+  },
+  sniper: {
+    label: "狙擊槍",
+    icon: "N",
+    color: "#7bdff2",
+    weight: 1,
+  },
+  gear: {
+    label: "齒輪",
+    icon: "G",
+    color: "#3ddc97",
+    weight: 2,
+  },
+};
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
@@ -61,6 +134,31 @@ function distanceBetween(a, b) {
 function normalizeVector(x, y) {
   const length = Math.hypot(x, y) || 1;
   return { x: x / length, y: y / length };
+}
+
+function randomPointInArena(padding = 34) {
+  const angle = randomBetween(0, Math.PI * 2);
+  const radius = Math.sqrt(Math.random()) * (state.arena.radius - padding);
+
+  return {
+    x: state.arena.x + Math.cos(angle) * radius,
+    y: state.arena.y + Math.sin(angle) * radius,
+  };
+}
+
+function pickWeightedType(config) {
+  const entries = Object.entries(config);
+  const totalWeight = entries.reduce((total, [, item]) => total + item.weight, 0);
+  let marker = randomBetween(0, totalWeight);
+
+  for (const [type, item] of entries) {
+    marker -= item.weight;
+    if (marker <= 0) {
+      return type;
+    }
+  }
+
+  return entries[0][0];
 }
 
 function resizeCanvas() {
@@ -98,6 +196,9 @@ function createBall(team, index, total) {
     radius: randomBetween(15, 19),
     health: maxHealth,
     hitTimer: randomBetween(0, hitCooldown),
+    weapon: null,
+    weaponCooldown: randomBetween(0, 0.5),
+    shieldCharges: 0,
     alive: true,
     targetId: null,
     trail: [],
@@ -107,12 +208,15 @@ function createBall(team, index, total) {
 function resetGame() {
   const ballCount = Number(ballCountInput.value);
   state.balls = [];
+  state.pickups = [];
+  state.projectiles = [];
   state.particles = [];
   state.running = false;
   state.startedAt = 0;
   state.elapsedBeforePause = 0;
   state.lastFrameTime = 0;
   state.winner = null;
+  state.nextPickupIn = 1.2;
 
   for (let index = 0; index < ballCount; index += 1) {
     state.balls.push(createBall("red", index, ballCount));
@@ -124,6 +228,153 @@ function resetGame() {
   winnerBanner.classList.add("hidden");
   updateHud();
   drawGame();
+}
+
+function spawnPickup() {
+  if (state.pickups.length >= maxPickups) {
+    return;
+  }
+
+  const type = pickWeightedType(pickupConfig);
+  const position = randomPointInArena(42);
+
+  state.pickups.push({
+    id: `${type}-${Date.now()}-${Math.random()}`,
+    type,
+    x: position.x,
+    y: position.y,
+    radius: type === "gear" ? 18 : 16,
+    age: 0,
+  });
+}
+
+function updatePickupSpawner(deltaSeconds) {
+  state.nextPickupIn -= deltaSeconds;
+
+  if (state.nextPickupIn <= 0) {
+    spawnPickup();
+    state.nextPickupIn = randomBetween(1.6, 3.2);
+  }
+
+  for (const pickup of state.pickups) {
+    pickup.age += deltaSeconds;
+  }
+}
+
+function collectPickups() {
+  for (const ball of state.balls) {
+    if (!ball.alive) {
+      continue;
+    }
+
+    const pickup = state.pickups.find((candidate) => {
+      return distanceBetween(ball, candidate) <= ball.radius + candidate.radius;
+    });
+
+    if (!pickup) {
+      continue;
+    }
+
+    applyPickup(ball, pickup);
+    state.pickups = state.pickups.filter((candidate) => candidate.id !== pickup.id);
+  }
+}
+
+function applyPickup(ball, pickup) {
+  if (pickup.type === "gear") {
+    ball.shieldCharges = Math.min(ball.shieldCharges + 1, 2);
+    createImpact(ball.x, ball.y, pickupConfig.gear.color, 18);
+    return;
+  }
+
+  const weapon = weaponConfig[pickup.type];
+  ball.weapon = {
+    type: pickup.type,
+    ammo: weapon.ammo,
+  };
+  ball.weaponCooldown = 0.15;
+  createImpact(ball.x, ball.y, weapon.color, 16);
+}
+
+function updateWeapons(deltaSeconds) {
+  for (const ball of state.balls) {
+    if (!ball.alive || !ball.weapon) {
+      continue;
+    }
+
+    ball.weaponCooldown = Math.max(0, ball.weaponCooldown - deltaSeconds);
+    const weapon = weaponConfig[ball.weapon.type];
+    const target = findClosestEnemy(ball);
+
+    if (!target || distanceBetween(ball, target) > weapon.range || ball.weaponCooldown > 0) {
+      continue;
+    }
+
+    fireWeapon(ball, target, weapon);
+    ball.weapon.ammo -= 1;
+    ball.weaponCooldown = weapon.cooldown;
+
+    if (ball.weapon.ammo <= 0) {
+      ball.weapon = null;
+    }
+  }
+}
+
+function fireWeapon(ball, target, weapon) {
+  const baseAngle = Math.atan2(target.y - ball.y, target.x - ball.x);
+  const pelletCount = weapon.pellets;
+  ball.vx -= Math.cos(baseAngle) * weapon.recoil;
+  ball.vy -= Math.sin(baseAngle) * weapon.recoil;
+
+  for (let index = 0; index < pelletCount; index += 1) {
+    const offset = pelletCount === 1
+      ? 0
+      : (index - (pelletCount - 1) / 2) * (weapon.spread / (pelletCount - 1));
+    const angle = baseAngle + offset;
+
+    state.projectiles.push({
+      x: ball.x + Math.cos(angle) * (ball.radius + 8),
+      y: ball.y + Math.sin(angle) * (ball.radius + 8),
+      vx: Math.cos(angle) * weapon.projectileSpeed,
+      vy: Math.sin(angle) * weapon.projectileSpeed,
+      team: ball.team,
+      damage: weapon.damage,
+      color: weapon.color,
+      radius: ball.weapon.type === "sniper" ? 4 : 3,
+      life: weapon.range / weapon.projectileSpeed,
+    });
+  }
+
+  createImpact(ball.x, ball.y, weapon.color, weapon.pellets + 3);
+}
+
+function updateProjectiles(deltaSeconds) {
+  for (const projectile of state.projectiles) {
+    projectile.x += projectile.vx * deltaSeconds;
+    projectile.y += projectile.vy * deltaSeconds;
+    projectile.life -= deltaSeconds;
+
+    const distanceFromCenter = distanceBetween(projectile, state.arena);
+    if (distanceFromCenter > state.arena.radius) {
+      projectile.life = 0;
+      continue;
+    }
+
+    const target = state.balls.find((ball) => {
+      return ball.alive
+        && ball.team !== projectile.team
+        && distanceBetween(ball, projectile) <= ball.radius + projectile.radius;
+    });
+
+    if (!target) {
+      continue;
+    }
+
+    damageBall(target, projectile.damage, projectile.color);
+    projectile.life = 0;
+  }
+
+  state.projectiles = state.projectiles.filter((projectile) => projectile.life > 0);
 }
 
 function toggleGame() {
@@ -303,24 +554,28 @@ function resolveCollisions() {
 }
 
 function handleHit(firstBall, secondBall) {
-  if (firstBall.hitTimer <= 0) {
-    secondBall.health -= damagePerHit;
-    firstBall.hitTimer = hitCooldown;
-    createImpact(secondBall.x, secondBall.y, teamConfig[firstBall.team].color, 8);
+  if (firstBall.hitTimer > 0 || secondBall.hitTimer > 0) {
+    return;
   }
 
-  if (secondBall.hitTimer <= 0) {
-    firstBall.health -= damagePerHit;
-    secondBall.hitTimer = hitCooldown;
-    createImpact(firstBall.x, firstBall.y, teamConfig[secondBall.team].color, 8);
+  firstBall.hitTimer = hitCooldown;
+  secondBall.hitTimer = hitCooldown;
+  createImpact(firstBall.x, firstBall.y, teamConfig[secondBall.team].color, 4);
+  createImpact(secondBall.x, secondBall.y, teamConfig[firstBall.team].color, 4);
+}
+
+function damageBall(ball, amount, color) {
+  if (ball.shieldCharges > 0) {
+    ball.shieldCharges -= 1;
+    createImpact(ball.x, ball.y, pickupConfig.gear.color, 18);
+    return;
   }
 
-  if (firstBall.health <= 0) {
-    eliminateBall(firstBall);
-  }
+  ball.health -= amount;
+  createImpact(ball.x, ball.y, color, 8);
 
-  if (secondBall.health <= 0) {
-    eliminateBall(secondBall);
+  if (ball.health <= 0) {
+    eliminateBall(ball);
   }
 }
 
@@ -434,6 +689,48 @@ function drawTargetLines() {
   context.restore();
 }
 
+function drawPickups() {
+  for (const pickup of state.pickups) {
+    const config = pickupConfig[pickup.type];
+    const bob = Math.sin(pickup.age * 4) * 3;
+
+    context.save();
+    context.translate(pickup.x, pickup.y + bob);
+    context.shadowColor = config.color;
+    context.shadowBlur = 16;
+
+    context.beginPath();
+    context.arc(0, 0, pickup.radius, 0, Math.PI * 2);
+    context.fillStyle = "rgba(8, 10, 16, 0.88)";
+    context.fill();
+    context.lineWidth = 3;
+    context.strokeStyle = config.color;
+    context.stroke();
+
+    context.fillStyle = config.color;
+    context.font = "900 15px system-ui, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(config.icon, 0, 1);
+    context.restore();
+  }
+}
+
+function drawProjectiles() {
+  for (const projectile of state.projectiles) {
+    const angle = Math.atan2(projectile.vy, projectile.vx);
+
+    context.save();
+    context.translate(projectile.x, projectile.y);
+    context.rotate(angle);
+    context.shadowColor = projectile.color;
+    context.shadowBlur = 12;
+    context.fillStyle = projectile.color;
+    context.fillRect(-8, -2, 16, 4);
+    context.restore();
+  }
+}
+
 function drawBalls() {
   for (const ball of state.balls) {
     if (!ball.alive) {
@@ -477,6 +774,30 @@ function drawBalls() {
       healthWidth * Math.max(0, ball.health / maxHealth),
       4,
     );
+
+    if (ball.weapon) {
+      const weapon = weaponConfig[ball.weapon.type];
+      context.beginPath();
+      context.arc(ball.x + ball.radius * 0.75, ball.y + ball.radius * 0.72, 10, 0, Math.PI * 2);
+      context.fillStyle = "rgba(8, 10, 16, 0.9)";
+      context.fill();
+      context.strokeStyle = weapon.color;
+      context.lineWidth = 2;
+      context.stroke();
+      context.fillStyle = weapon.color;
+      context.font = "900 10px system-ui, sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(weapon.icon, ball.x + ball.radius * 0.75, ball.y + ball.radius * 0.72);
+    }
+
+    if (ball.shieldCharges > 0) {
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius + 7, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(61, 220, 151, 0.72)";
+      context.lineWidth = 3;
+      context.stroke();
+    }
   }
 }
 
@@ -495,6 +816,8 @@ function drawParticles() {
 function drawGame() {
   drawArena();
   drawTargetLines();
+  drawPickups();
+  drawProjectiles();
   drawParticles();
   drawBalls();
 }
@@ -508,9 +831,13 @@ function gameLoop(timestamp) {
   state.lastFrameTime = timestamp;
   state.arena.pulse += deltaSeconds * 3;
 
+  updatePickupSpawner(deltaSeconds);
   steerTowardTargets(deltaSeconds);
   moveBalls(deltaSeconds);
+  collectPickups();
+  updateWeapons(deltaSeconds);
   resolveCollisions();
+  updateProjectiles(deltaSeconds);
   updateParticles(deltaSeconds);
   checkWinner();
   updateHud();

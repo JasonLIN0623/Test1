@@ -266,7 +266,7 @@ function spawnPickup() {
     type,
     x: position.x,
     y: position.y,
-    radius: type === "gear" ? 18 : 16,
+    radius: type === "gear" ? 20 : 21,
     age: 0,
   });
 }
@@ -462,6 +462,21 @@ function findClosestEnemy(ball) {
   return closest;
 }
 
+function findClosestPickup(ball) {
+  let closest = null;
+  let closestDistance = Infinity;
+
+  for (const pickup of state.pickups) {
+    const distance = distanceBetween(ball, pickup);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closest = pickup;
+    }
+  }
+
+  return closest;
+}
+
 function steerTowardTargets(deltaSeconds) {
   const speedModifier = Number(speedInput.value) / 100;
 
@@ -471,23 +486,49 @@ function steerTowardTargets(deltaSeconds) {
     }
 
     const target = findClosestEnemy(ball);
-    ball.targetId = target?.id ?? null;
+    const pickup = findClosestPickup(ball);
+    const currentDirection = normalizeVector(ball.vx, ball.vy);
+    let desiredDirection = currentDirection;
+    let steeringPower = 22;
 
-    if (target) {
-      const direction = normalizeVector(target.x - ball.x, target.y - ball.y);
-      const chasePower = 86 * speedModifier;
-      ball.vx += direction.x * chasePower * deltaSeconds;
-      ball.vy += direction.y * chasePower * deltaSeconds;
+    ball.targetId = ball.weapon ? target?.id ?? null : null;
+
+    if (!ball.weapon && pickup) {
+      desiredDirection = normalizeVector(pickup.x - ball.x, pickup.y - ball.y);
+      steeringPower = 70;
+    } else if (ball.weapon && target) {
+      const weapon = weaponConfig[ball.weapon.type];
+      const distance = distanceBetween(ball, target);
+      const targetDirection = normalizeVector(target.x - ball.x, target.y - ball.y);
+
+      if (distance < weapon.range * 0.45) {
+        desiredDirection = { x: -targetDirection.x, y: -targetDirection.y };
+        steeringPower = 82;
+      } else if (distance > weapon.range * 0.9) {
+        desiredDirection = targetDirection;
+        steeringPower = 42;
+      } else {
+        desiredDirection = normalizeVector(-targetDirection.y, targetDirection.x);
+        steeringPower = 32;
+      }
+    } else if (pickup) {
+      desiredDirection = normalizeVector(pickup.x - ball.x, pickup.y - ball.y);
+      steeringPower = 36;
     }
 
-    const speed = Math.hypot(ball.vx, ball.vy);
+    ball.vx += desiredDirection.x * steeringPower * speedModifier * deltaSeconds;
+    ball.vy += desiredDirection.y * steeringPower * speedModifier * deltaSeconds;
+    ball.vx *= 0.998;
+    ball.vy *= 0.998;
+
     const maxSpeed = 245 * speedModifier;
     const minSpeed = 105 * speedModifier;
+    const updatedSpeed = Math.hypot(ball.vx, ball.vy);
 
-    if (speed > maxSpeed) {
-      ball.vx = (ball.vx / speed) * maxSpeed;
-      ball.vy = (ball.vy / speed) * maxSpeed;
-    } else if (speed < minSpeed) {
+    if (updatedSpeed > maxSpeed) {
+      ball.vx = (ball.vx / updatedSpeed) * maxSpeed;
+      ball.vy = (ball.vy / updatedSpeed) * maxSpeed;
+    } else if (updatedSpeed < minSpeed) {
       const direction = normalizeVector(ball.vx, ball.vy);
       ball.vx = direction.x * minSpeed;
       ball.vy = direction.y * minSpeed;
@@ -720,82 +761,203 @@ function drawWeaponIcon(type, x, y, size, color, rotation = 0) {
   context.scale(size / 24, size / 24);
   context.lineCap = "round";
   context.lineJoin = "round";
-  context.strokeStyle = color;
-  context.fillStyle = color;
-  context.lineWidth = 2.6;
+  context.lineWidth = 1.8;
 
-  if (type === "pistol") {
-    context.beginPath();
-    context.moveTo(-9, -2);
-    context.lineTo(4, -2);
-    context.lineTo(10, 1);
-    context.lineTo(2, 2);
-    context.lineTo(-7, 2);
-    context.closePath();
+  const outline = "#34384a";
+  const slide = "#5d6273";
+  const slideDark = "#444a5d";
+  const barrel = "#3a4052";
+  const grip = "#b66a3e";
+  const gripLight = "#d17b43";
+  const trigger = "#202433";
+
+  function fillAndStroke(fillColor = slide, strokeColor = outline) {
+    context.fillStyle = fillColor;
     context.fill();
+    context.strokeStyle = strokeColor;
+    context.stroke();
+  }
 
+  function drawPistolFrame(length = 22, gripLean = 2) {
     context.beginPath();
-    context.moveTo(-2, 2);
-    context.lineTo(-5, 10);
-    context.lineTo(-1, 11);
-    context.lineTo(4, 3);
-    context.stroke();
-  } else if (type === "shotgun") {
-    context.lineWidth = 3.4;
-    context.beginPath();
-    context.moveTo(-11, -1);
-    context.lineTo(10, -1);
-    context.stroke();
+    context.moveTo(-10, -7);
+    context.lineTo(length - 9, -7);
+    context.quadraticCurveTo(length - 5, -7, length - 5, -3);
+    context.lineTo(length - 5, 0);
+    context.lineTo(-5, 0);
+    context.quadraticCurveTo(-8, 0, -9, 3);
+    context.lineTo(-12, 9);
+    context.lineTo(-15, 9);
+    context.quadraticCurveTo(-17, 5, -15, 0);
+    context.quadraticCurveTo(-12, -2, -10, -7);
+    fillAndStroke(slide);
 
-    context.lineWidth = 2.2;
-    context.beginPath();
-    context.moveTo(-7, 3);
-    context.lineTo(6, 3);
-    context.stroke();
+    context.fillStyle = slideDark;
+    context.fillRect(-5, -7, 10, 4);
 
-    context.beginPath();
-    context.moveTo(-11, -1);
-    context.lineTo(-16, 5);
-    context.lineTo(-11, 7);
-    context.stroke();
-  } else if (type === "sniper") {
-    context.lineWidth = 2.4;
-    context.beginPath();
-    context.moveTo(-14, 0);
-    context.lineTo(15, 0);
-    context.stroke();
+    context.fillStyle = barrel;
+    context.fillRect(length - 13, -4, 8, 3);
 
-    context.beginPath();
-    context.moveTo(-2, -5);
-    context.lineTo(9, -5);
-    context.stroke();
-
-    context.beginPath();
-    context.arc(3.5, -5, 2.5, 0, Math.PI * 2);
-    context.stroke();
-
-    context.beginPath();
-    context.moveTo(-10, 0);
-    context.lineTo(-15, 5);
-    context.lineTo(-9, 6);
-    context.stroke();
-  } else if (type === "machineGun") {
-    context.lineWidth = 3;
-    context.beginPath();
-    context.moveTo(-13, 0);
-    context.lineTo(12, 0);
-    context.stroke();
-
-    context.fillRect(-6, -5, 10, 7);
-    context.fillRect(1, 2, 5, 8);
-
-    context.lineWidth = 1.8;
-    for (let offset = 6; offset <= 12; offset += 3) {
+    for (let offset = -7; offset <= -1; offset += 3) {
       context.beginPath();
-      context.moveTo(offset, -4);
-      context.lineTo(offset, 4);
+      context.moveTo(offset, -5.5);
+      context.lineTo(offset - 2, -1.2);
+      context.strokeStyle = outline;
+      context.lineWidth = 1.1;
       context.stroke();
     }
+
+    context.beginPath();
+    context.moveTo(-9, 0);
+    context.lineTo(-3, 0);
+    context.lineTo(-5 + gripLean, 12);
+    context.quadraticCurveTo(-6 + gripLean, 15, -10, 15);
+    context.lineTo(-16, 15);
+    context.quadraticCurveTo(-18, 14, -17, 11);
+    context.closePath();
+    fillAndStroke(grip);
+
+    context.fillStyle = gripLight;
+    context.fillRect(-13.5, 2.2, 5, 10);
+
+    context.beginPath();
+    context.arc(-2.4, 3.2, 4.2, Math.PI * 0.1, Math.PI * 1.55);
+    context.strokeStyle = outline;
+    context.lineWidth = 2;
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(-3, 2);
+    context.quadraticCurveTo(-1, 5, -3, 7);
+    context.strokeStyle = trigger;
+    context.lineWidth = 1.8;
+    context.stroke();
+  }
+
+  if (type === "pistol") {
+    drawPistolFrame(22, 1.5);
+  } else if (type === "shotgun") {
+    context.beginPath();
+    context.moveTo(-13, -6);
+    context.lineTo(17, -6);
+    context.lineTo(17, -2);
+    context.lineTo(-7, -2);
+    context.lineTo(-10, 2);
+    context.lineTo(-15, 2);
+    context.closePath();
+    fillAndStroke(slide);
+
+    context.fillStyle = barrel;
+    context.fillRect(0, -3, 17, 3);
+    context.fillStyle = slideDark;
+    context.fillRect(-2, 0, 9, 5);
+
+    context.beginPath();
+    context.moveTo(-13, -2);
+    context.lineTo(-19, 5);
+    context.lineTo(-15, 8);
+    context.lineTo(-7, 1);
+    context.closePath();
+    fillAndStroke(grip);
+
+    context.beginPath();
+    context.moveTo(-5, 2);
+    context.lineTo(0, 2);
+    context.lineTo(-1, 12);
+    context.lineTo(-6, 12);
+    context.closePath();
+    fillAndStroke(gripLight);
+
+    context.beginPath();
+    context.arc(3, 3.5, 4, Math.PI * 0.15, Math.PI * 1.55);
+    context.strokeStyle = outline;
+    context.lineWidth = 1.8;
+    context.stroke();
+  } else if (type === "sniper") {
+    context.beginPath();
+    context.moveTo(-15, -5);
+    context.lineTo(14, -5);
+    context.lineTo(16, -2);
+    context.lineTo(-4, -2);
+    context.lineTo(-8, 2);
+    context.lineTo(-15, 2);
+    context.closePath();
+    fillAndStroke(slide);
+
+    context.fillStyle = barrel;
+    context.fillRect(13, -4.3, 10, 2.8);
+
+    context.beginPath();
+    context.moveTo(-5, -9);
+    context.lineTo(9, -9);
+    context.lineWidth = 2.2;
+    context.strokeStyle = outline;
+    context.stroke();
+
+    context.beginPath();
+    context.rect(-2, -12, 8, 4);
+    fillAndStroke(slideDark);
+
+    context.beginPath();
+    context.moveTo(-15, 0);
+    context.lineTo(-21, 7);
+    context.lineTo(-16, 10);
+    context.lineTo(-8, 1);
+    context.closePath();
+    fillAndStroke(grip);
+
+    context.beginPath();
+    context.moveTo(-2, 1);
+    context.lineTo(3, 1);
+    context.lineTo(2, 12);
+    context.lineTo(-3, 12);
+    context.closePath();
+    fillAndStroke(gripLight);
+  } else if (type === "machineGun") {
+    context.beginPath();
+    context.moveTo(-15, -6);
+    context.lineTo(13, -6);
+    context.lineTo(16, -3);
+    context.lineTo(16, 0);
+    context.lineTo(-7, 0);
+    context.lineTo(-10, 3);
+    context.lineTo(-16, 3);
+    context.closePath();
+    fillAndStroke(slide);
+
+    context.fillStyle = barrel;
+    context.fillRect(12, -4.5, 10, 3);
+
+    for (let offset = -9; offset <= 2; offset += 4) {
+      context.beginPath();
+      context.moveTo(offset, -5);
+      context.lineTo(offset - 2, -1);
+      context.strokeStyle = outline;
+      context.lineWidth = 1.1;
+      context.stroke();
+    }
+
+    context.beginPath();
+    context.moveTo(-14, 1);
+    context.lineTo(-20, 7);
+    context.lineTo(-16, 10);
+    context.lineTo(-8, 2);
+    context.closePath();
+    fillAndStroke(grip);
+
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.lineTo(7, 0);
+    context.lineTo(5, 12);
+    context.lineTo(0, 12);
+    context.closePath();
+    fillAndStroke(gripLight);
+
+    context.beginPath();
+    context.arc(-2, 3.6, 4, Math.PI * 0.1, Math.PI * 1.5);
+    context.strokeStyle = outline;
+    context.lineWidth = 1.8;
+    context.stroke();
   }
 
   context.restore();
@@ -843,9 +1005,9 @@ function drawPickups() {
     context.stroke();
 
     if (pickup.type === "gear") {
-      drawGearIcon(0, 0, 25, config.color);
+      drawGearIcon(0, 0, 29, config.color);
     } else {
-      drawWeaponIcon(pickup.type, 0, 1, 25, config.color, -0.08);
+      drawWeaponIcon(pickup.type, 0, 1, 32, config.color, -0.08);
     }
     context.restore();
   }
@@ -864,6 +1026,18 @@ function drawProjectiles() {
     context.fillRect(-8, -2, 16, 4);
     context.restore();
   }
+}
+
+function getWeaponAimAngle(ball) {
+  const target = ball.targetId
+    ? state.balls.find((candidate) => candidate.id === ball.targetId && candidate.alive)
+    : findClosestEnemy(ball);
+
+  if (target) {
+    return Math.atan2(target.y - ball.y, target.x - ball.x);
+  }
+
+  return Math.atan2(ball.vy, ball.vx);
 }
 
 function drawBalls() {
@@ -912,20 +1086,25 @@ function drawBalls() {
 
     if (ball.weapon) {
       const weapon = weaponConfig[ball.weapon.type];
+      const aimAngle = getWeaponAimAngle(ball);
+      const mountX = ball.x + Math.cos(aimAngle) * (ball.radius + 9);
+      const mountY = ball.y + Math.sin(aimAngle) * (ball.radius + 9);
+
       context.beginPath();
-      context.arc(ball.x + ball.radius * 0.75, ball.y + ball.radius * 0.72, 10, 0, Math.PI * 2);
+      context.arc(mountX, mountY, 12, 0, Math.PI * 2);
       context.fillStyle = "rgba(8, 10, 16, 0.9)";
       context.fill();
       context.strokeStyle = weapon.color;
       context.lineWidth = 2;
       context.stroke();
+
       drawWeaponIcon(
         ball.weapon.type,
-        ball.x + ball.radius * 0.75,
-        ball.y + ball.radius * 0.72,
-        16,
+        mountX,
+        mountY,
+        22,
         weapon.color,
-        -0.08,
+        aimAngle,
       );
     }
 

@@ -64,6 +64,7 @@ const speedBoostMultiplier = 1.45;
 const audioState = {
   context: null,
   enabled: false,
+  noiseBuffer: null,
 };
 
 const weaponConfig = {
@@ -246,11 +247,90 @@ function playTone({ frequency, duration, type = "sine", volume = 0.05, slideTo =
   oscillator.stop(now + duration + 0.02);
 }
 
+function getNoiseBuffer() {
+  const audioContext = audioState.context;
+
+  if (!audioContext) {
+    return null;
+  }
+
+  if (audioState.noiseBuffer) {
+    return audioState.noiseBuffer;
+  }
+
+  const length = Math.floor(audioContext.sampleRate * 0.35);
+  const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+  const output = buffer.getChannelData(0);
+
+  for (let index = 0; index < length; index += 1) {
+    output[index] = (Math.random() * 2 - 1) * (1 - index / length);
+  }
+
+  audioState.noiseBuffer = buffer;
+  return buffer;
+}
+
+function playNoiseBurst({ duration, volume, filterFrequency, filterType = "bandpass" }) {
+  if (!audioState.enabled || !audioState.context) {
+    return;
+  }
+
+  const audioContext = audioState.context;
+  const noiseBuffer = getNoiseBuffer();
+
+  if (!noiseBuffer) {
+    return;
+  }
+
+  const now = audioContext.currentTime;
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+
+  source.buffer = noiseBuffer;
+  filter.type = filterType;
+  filter.frequency.setValueAtTime(filterFrequency, now);
+  filter.Q.setValueAtTime(0.9, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start(now);
+  source.stop(now + duration + 0.02);
+}
+
+function playGunshot(type) {
+  const gunshotMap = {
+    pistol: {
+      crack: { duration: 0.085, volume: 0.16, filterFrequency: 1650 },
+      boom: { frequency: 150, slideTo: 70, duration: 0.11, type: "triangle", volume: 0.08 },
+    },
+    shotgun: {
+      crack: { duration: 0.15, volume: 0.22, filterFrequency: 980 },
+      boom: { frequency: 95, slideTo: 42, duration: 0.2, type: "sawtooth", volume: 0.12 },
+    },
+    sniper: {
+      crack: { duration: 0.105, volume: 0.2, filterFrequency: 2200 },
+      boom: { frequency: 120, slideTo: 38, duration: 0.24, type: "sawtooth", volume: 0.1 },
+    },
+    machineGun: {
+      crack: { duration: 0.055, volume: 0.13, filterFrequency: 1450 },
+      boom: { frequency: 180, slideTo: 92, duration: 0.07, type: "square", volume: 0.055 },
+    },
+  };
+
+  const gunshot = gunshotMap[type] ?? gunshotMap.pistol;
+  playNoiseBurst(gunshot.crack);
+  playTone(gunshot.boom);
+}
+
 function playSound(name) {
   const soundMap = {
     pickup: { frequency: 620, slideTo: 920, duration: 0.08, type: "triangle", volume: 0.04 },
     speed: { frequency: 420, slideTo: 1200, duration: 0.16, type: "sawtooth", volume: 0.045 },
-    shoot: { frequency: 180, slideTo: 90, duration: 0.07, type: "square", volume: 0.035 },
     hit: { frequency: 120, slideTo: 70, duration: 0.08, type: "sawtooth", volume: 0.04 },
     shield: { frequency: 760, slideTo: 460, duration: 0.12, type: "triangle", volume: 0.045 },
     win: { frequency: 520, slideTo: 880, duration: 0.2, type: "sine", volume: 0.045 },
@@ -483,7 +563,7 @@ function fireWeapon(ball, target, weapon) {
   }
 
   createImpact(ball.x, ball.y, weapon.color, weapon.pellets + 3);
-  playSound("shoot");
+  playGunshot(ball.weapon.type);
 }
 
 function updateProjectiles(deltaSeconds) {

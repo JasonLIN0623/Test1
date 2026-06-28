@@ -713,6 +713,117 @@ function drawTargetLines() {
   context.restore();
 }
 
+function drawWeaponIcon(type, x, y, size, color, rotation = 0) {
+  context.save();
+  context.translate(x, y);
+  context.rotate(rotation);
+  context.scale(size / 24, size / 24);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 2.6;
+
+  if (type === "pistol") {
+    context.beginPath();
+    context.moveTo(-9, -2);
+    context.lineTo(4, -2);
+    context.lineTo(10, 1);
+    context.lineTo(2, 2);
+    context.lineTo(-7, 2);
+    context.closePath();
+    context.fill();
+
+    context.beginPath();
+    context.moveTo(-2, 2);
+    context.lineTo(-5, 10);
+    context.lineTo(-1, 11);
+    context.lineTo(4, 3);
+    context.stroke();
+  } else if (type === "shotgun") {
+    context.lineWidth = 3.4;
+    context.beginPath();
+    context.moveTo(-11, -1);
+    context.lineTo(10, -1);
+    context.stroke();
+
+    context.lineWidth = 2.2;
+    context.beginPath();
+    context.moveTo(-7, 3);
+    context.lineTo(6, 3);
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(-11, -1);
+    context.lineTo(-16, 5);
+    context.lineTo(-11, 7);
+    context.stroke();
+  } else if (type === "sniper") {
+    context.lineWidth = 2.4;
+    context.beginPath();
+    context.moveTo(-14, 0);
+    context.lineTo(15, 0);
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(-2, -5);
+    context.lineTo(9, -5);
+    context.stroke();
+
+    context.beginPath();
+    context.arc(3.5, -5, 2.5, 0, Math.PI * 2);
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(-10, 0);
+    context.lineTo(-15, 5);
+    context.lineTo(-9, 6);
+    context.stroke();
+  } else if (type === "machineGun") {
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(-13, 0);
+    context.lineTo(12, 0);
+    context.stroke();
+
+    context.fillRect(-6, -5, 10, 7);
+    context.fillRect(1, 2, 5, 8);
+
+    context.lineWidth = 1.8;
+    for (let offset = 6; offset <= 12; offset += 3) {
+      context.beginPath();
+      context.moveTo(offset, -4);
+      context.lineTo(offset, 4);
+      context.stroke();
+    }
+  }
+
+  context.restore();
+}
+
+function drawGearIcon(x, y, size, color) {
+  context.save();
+  context.translate(x, y);
+  context.strokeStyle = color;
+  context.lineWidth = Math.max(1.6, size * 0.1);
+
+  for (let index = 0; index < 8; index += 1) {
+    const angle = (Math.PI * 2 * index) / 8;
+    context.save();
+    context.rotate(angle);
+    context.strokeRect(size * 0.28, -size * 0.06, size * 0.2, size * 0.12);
+    context.restore();
+  }
+
+  context.beginPath();
+  context.arc(0, 0, size * 0.32, 0, Math.PI * 2);
+  context.stroke();
+  context.beginPath();
+  context.arc(0, 0, size * 0.12, 0, Math.PI * 2);
+  context.stroke();
+  context.restore();
+}
+
 function drawPickups() {
   for (const pickup of state.pickups) {
     const config = pickupConfig[pickup.type];
@@ -731,11 +842,11 @@ function drawPickups() {
     context.strokeStyle = config.color;
     context.stroke();
 
-    context.fillStyle = config.color;
-    context.font = "900 15px system-ui, sans-serif";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(config.icon, 0, 1);
+    if (pickup.type === "gear") {
+      drawGearIcon(0, 0, 25, config.color);
+    } else {
+      drawWeaponIcon(pickup.type, 0, 1, 25, config.color, -0.08);
+    }
     context.restore();
   }
 }
@@ -808,11 +919,14 @@ function drawBalls() {
       context.strokeStyle = weapon.color;
       context.lineWidth = 2;
       context.stroke();
-      context.fillStyle = weapon.color;
-      context.font = "900 10px system-ui, sans-serif";
-      context.textAlign = "center";
-      context.textBaseline = "middle";
-      context.fillText(weapon.icon, ball.x + ball.radius * 0.75, ball.y + ball.radius * 0.72);
+      drawWeaponIcon(
+        ball.weapon.type,
+        ball.x + ball.radius * 0.75,
+        ball.y + ball.radius * 0.72,
+        16,
+        weapon.color,
+        -0.08,
+      );
     }
 
     if (ball.shieldCharges > 0) {

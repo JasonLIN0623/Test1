@@ -65,6 +65,22 @@ const audioState = {
   context: null,
   enabled: false,
   noiseBuffer: null,
+  gunshotBuffers: {},
+  gunshotLoadPromises: {},
+};
+
+const gunshotAudioFiles = {
+  pistol: "assets/audio/gunshots/pistol.wav",
+  shotgun: "assets/audio/gunshots/shotgun.wav",
+  sniper: "assets/audio/gunshots/sniper.wav",
+  machineGun: "assets/audio/gunshots/machine-gun.wav",
+};
+
+const gunshotPlaybackConfig = {
+  pistol: { offset: 0.24, duration: 0.44, volume: 0.34, playbackRate: 1.03 },
+  shotgun: { offset: 0.1, duration: 0.55, volume: 0.4, playbackRate: 1 },
+  sniper: { offset: 0.42, duration: 0.7, volume: 0.38, playbackRate: 0.96 },
+  machineGun: { offset: 2.28, duration: 0.24, volume: 0.26, playbackRate: 1.12 },
 };
 
 const weaponConfig = {
@@ -218,6 +234,47 @@ function unlockAudio() {
   }
 
   audioState.enabled = true;
+  preloadGunshotSounds();
+}
+
+function loadGunshotSound(type) {
+  if (!audioState.context || !gunshotAudioFiles[type]) {
+    return Promise.resolve(null);
+  }
+
+  if (audioState.gunshotBuffers[type]) {
+    return Promise.resolve(audioState.gunshotBuffers[type]);
+  }
+
+  if (audioState.gunshotLoadPromises[type]) {
+    return audioState.gunshotLoadPromises[type];
+  }
+
+  audioState.gunshotLoadPromises[type] = fetch(gunshotAudioFiles[type])
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to load gunshot sound: ${type}`);
+      }
+
+      return response.arrayBuffer();
+    })
+    .then((arrayBuffer) => audioState.context.decodeAudioData(arrayBuffer))
+    .then((audioBuffer) => {
+      audioState.gunshotBuffers[type] = audioBuffer;
+      return audioBuffer;
+    })
+    .catch(() => {
+      delete audioState.gunshotLoadPromises[type];
+      return null;
+    });
+
+  return audioState.gunshotLoadPromises[type];
+}
+
+function preloadGunshotSounds() {
+  Object.keys(gunshotAudioFiles).forEach((type) => {
+    loadGunshotSound(type);
+  });
 }
 
 function playTone({ frequency, duration, type = "sine", volume = 0.05, slideTo = null }) {
@@ -302,7 +359,7 @@ function playNoiseBurst({ duration, volume, filterFrequency, filterType = "bandp
   source.stop(now + duration + 0.02);
 }
 
-function playGunshot(type) {
+function playSyntheticGunshot(type) {
   const gunshotMap = {
     pistol: {
       crack: { duration: 0.085, volume: 0.16, filterFrequency: 1650 },
@@ -325,6 +382,38 @@ function playGunshot(type) {
   const gunshot = gunshotMap[type] ?? gunshotMap.pistol;
   playNoiseBurst(gunshot.crack);
   playTone(gunshot.boom);
+}
+
+function playGunshot(type) {
+  if (!audioState.enabled || !audioState.context) {
+    return;
+  }
+
+  const audioContext = audioState.context;
+  const audioBuffer = audioState.gunshotBuffers[type];
+  const playbackConfig = gunshotPlaybackConfig[type] ?? gunshotPlaybackConfig.pistol;
+
+  if (!audioBuffer) {
+    loadGunshotSound(type);
+    playSyntheticGunshot(type);
+    return;
+  }
+
+  const now = audioContext.currentTime;
+  const source = audioContext.createBufferSource();
+  const gain = audioContext.createGain();
+  const offset = Math.min(playbackConfig.offset, Math.max(audioBuffer.duration - 0.05, 0));
+  const duration = Math.min(playbackConfig.duration, audioBuffer.duration - offset);
+
+  source.buffer = audioBuffer;
+  source.playbackRate.setValueAtTime(playbackConfig.playbackRate, now);
+  gain.gain.setValueAtTime(playbackConfig.volume, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration + 0.08);
+
+  source.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start(now, offset, duration);
+  source.stop(now + duration + 0.1);
 }
 
 function playSound(name) {

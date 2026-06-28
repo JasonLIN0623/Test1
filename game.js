@@ -59,13 +59,14 @@ const weaponConfig = {
     label: "PISTOL",
     icon: "P",
     color: "#f7f7ff",
-    damage: 18,
-    range: 250,
-    cooldown: 0.7,
+    damage: 16,
+    range: 260,
+    cooldown: 0.55,
     projectileSpeed: 520,
-    ammo: 8,
+    ammo: 3,
     pellets: 1,
     spread: 0,
+    accuracySpread: 0.28,
     recoil: 70,
   },
   shotgun: {
@@ -76,23 +77,39 @@ const weaponConfig = {
     range: 190,
     cooldown: 1.05,
     projectileSpeed: 430,
-    ammo: 5,
+    ammo: 2,
     pellets: 5,
-    spread: 0.5,
+    spread: 0.44,
+    accuracySpread: 0.12,
     recoil: 135,
   },
   sniper: {
     label: "SNIPER",
     icon: "N",
     color: "#7bdff2",
-    damage: 42,
-    range: 430,
+    damage: 54,
+    range: 470,
     cooldown: 1.55,
     projectileSpeed: 760,
-    ammo: 4,
+    ammo: 1,
     pellets: 1,
     spread: 0,
+    accuracySpread: 0.015,
     recoil: 210,
+  },
+  machineGun: {
+    label: "MACHINE GUN",
+    icon: "M",
+    color: "#c77dff",
+    damage: 8,
+    range: 280,
+    cooldown: 0.12,
+    projectileSpeed: 560,
+    ammo: 5,
+    pellets: 1,
+    spread: 0,
+    accuracySpread: 0.45,
+    recoil: 45,
   },
 };
 
@@ -114,6 +131,12 @@ const pickupConfig = {
     icon: "N",
     color: "#7bdff2",
     weight: 1,
+  },
+  machineGun: {
+    label: "機關槍",
+    icon: "M",
+    color: "#c77dff",
+    weight: 2,
   },
   gear: {
     label: "齒輪",
@@ -322,6 +345,7 @@ function updateWeapons(deltaSeconds) {
 
 function fireWeapon(ball, target, weapon) {
   const baseAngle = Math.atan2(target.y - ball.y, target.x - ball.x);
+  const aimAngle = baseAngle + randomBetween(-weapon.accuracySpread, weapon.accuracySpread);
   const pelletCount = weapon.pellets;
   ball.vx -= Math.cos(baseAngle) * weapon.recoil;
   ball.vy -= Math.sin(baseAngle) * weapon.recoil;
@@ -330,7 +354,7 @@ function fireWeapon(ball, target, weapon) {
     const offset = pelletCount === 1
       ? 0
       : (index - (pelletCount - 1) / 2) * (weapon.spread / (pelletCount - 1));
-    const angle = baseAngle + offset;
+    const angle = aimAngle + offset;
 
     state.projectiles.push({
       x: ball.x + Math.cos(angle) * (ball.radius + 8),

@@ -56,6 +56,15 @@ const maxHealth = 100;
 const damagePerHit = 14;
 const hitCooldown = 0.38;
 const maxPickups = 7;
+const pickupLifetime = 10;
+const weaponReadyDelay = 1;
+const speedBoostDuration = 4;
+const speedBoostMultiplier = 1.45;
+
+const audioState = {
+  context: null,
+  enabled: false,
+};
 
 const weaponConfig = {
   pistol: {
@@ -147,6 +156,12 @@ const pickupConfig = {
     color: "#3ddc97",
     weight: 2,
   },
+  speedBoost: {
+    label: "加速器",
+    icon: "A",
+    color: "#ffd166",
+    weight: 2,
+  },
 };
 
 function randomBetween(min, max) {
@@ -185,6 +200,66 @@ function pickWeightedType(config) {
   }
 
   return entries[0][0];
+}
+
+function unlockAudio() {
+  if (!audioState.context) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return;
+    }
+
+    audioState.context = new AudioContextClass();
+  }
+
+  if (audioState.context.state === "suspended") {
+    audioState.context.resume();
+  }
+
+  audioState.enabled = true;
+}
+
+function playTone({ frequency, duration, type = "sine", volume = 0.05, slideTo = null }) {
+  if (!audioState.enabled || !audioState.context) {
+    return;
+  }
+
+  const audioContext = audioState.context;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now = audioContext.currentTime;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, now);
+
+  if (slideTo) {
+    oscillator.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+  }
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + duration + 0.02);
+}
+
+function playSound(name) {
+  const soundMap = {
+    pickup: { frequency: 620, slideTo: 920, duration: 0.08, type: "triangle", volume: 0.04 },
+    speed: { frequency: 420, slideTo: 1200, duration: 0.16, type: "sawtooth", volume: 0.045 },
+    shoot: { frequency: 180, slideTo: 90, duration: 0.07, type: "square", volume: 0.035 },
+    hit: { frequency: 120, slideTo: 70, duration: 0.08, type: "sawtooth", volume: 0.04 },
+    shield: { frequency: 760, slideTo: 460, duration: 0.12, type: "triangle", volume: 0.045 },
+    win: { frequency: 520, slideTo: 880, duration: 0.2, type: "sine", volume: 0.045 },
+  };
+
+  const sound = soundMap[name];
+  if (sound) {
+    playTone(sound);
+  }
 }
 
 function getBallsPerTeam() {
@@ -241,6 +316,7 @@ function createBall(team, index, total) {
     weapon: null,
     weaponCooldown: randomBetween(0, 0.5),
     shieldCharges: 0,
+    speedBoostTimer: 0,
     alive: true,
     targetId: null,
     trail: [],
@@ -286,8 +362,9 @@ function spawnPickup() {
     type,
     x: position.x,
     y: position.y,
-    radius: type === "gear" ? 20 : 21,
+    radius: type === "gear" || type === "speedBoost" ? 20 : 21,
     age: 0,
+    ttl: pickupLifetime,
   });
 }
 
@@ -302,6 +379,8 @@ function updatePickupSpawner(deltaSeconds) {
   for (const pickup of state.pickups) {
     pickup.age += deltaSeconds;
   }
+
+  state.pickups = state.pickups.filter((pickup) => pickup.age < (pickup.ttl ?? pickupLifetime));
 }
 
 function collectPickups() {
@@ -327,6 +406,19 @@ function applyPickup(ball, pickup) {
   if (pickup.type === "gear") {
     ball.shieldCharges = Math.min(ball.shieldCharges + 1, 2);
     createImpact(ball.x, ball.y, pickupConfig.gear.color, 18);
+    playSound("shield");
+    return;
+  }
+
+  if (pickup.type === "speedBoost") {
+    const speed = Math.hypot(ball.vx, ball.vy);
+    const direction = normalizeVector(ball.vx, ball.vy);
+    const boostedSpeed = Math.max(speed * 1.45, 300);
+    ball.vx = direction.x * boostedSpeed;
+    ball.vy = direction.y * boostedSpeed;
+    ball.speedBoostTimer = speedBoostDuration;
+    createImpact(ball.x, ball.y, pickupConfig.speedBoost.color, 22);
+    playSound("speed");
     return;
   }
 
@@ -335,8 +427,9 @@ function applyPickup(ball, pickup) {
     type: pickup.type,
     ammo: weapon.ammo,
   };
-  ball.weaponCooldown = 0.15;
+  ball.weaponCooldown = weaponReadyDelay;
   createImpact(ball.x, ball.y, weapon.color, 16);
+  playSound("pickup");
 }
 
 function updateWeapons(deltaSeconds) {
@@ -390,6 +483,7 @@ function fireWeapon(ball, target, weapon) {
   }
 
   createImpact(ball.x, ball.y, weapon.color, weapon.pellets + 3);
+  playSound("shoot");
 }
 
 function updateProjectiles(deltaSeconds) {
@@ -422,6 +516,8 @@ function updateProjectiles(deltaSeconds) {
 }
 
 function toggleGame() {
+  unlockAudio();
+
   if (state.winner) {
     resetGame();
   }
@@ -492,10 +588,12 @@ function steerTowardTargets(deltaSeconds) {
 
     const target = findClosestEnemy(ball);
     ball.targetId = ball.weapon ? target?.id ?? null : null;
+    ball.speedBoostTimer = Math.max(0, ball.speedBoostTimer - deltaSeconds);
     ball.vx *= 1 - 0.012 * deltaSeconds;
     ball.vy *= 1 - 0.012 * deltaSeconds;
 
-    const maxSpeed = 245 * speedModifier;
+    const boostMultiplier = ball.speedBoostTimer > 0 ? speedBoostMultiplier : 1;
+    const maxSpeed = 245 * speedModifier * boostMultiplier;
     const minSpeed = 105 * speedModifier;
     const updatedSpeed = Math.hypot(ball.vx, ball.vy);
 
@@ -607,11 +705,13 @@ function damageBall(ball, amount, color) {
   if (ball.shieldCharges > 0) {
     ball.shieldCharges -= 1;
     createImpact(ball.x, ball.y, pickupConfig.gear.color, 18);
+    playSound("shield");
     return;
   }
 
   ball.health -= amount;
   createImpact(ball.x, ball.y, color, 8);
+  playSound("hit");
 
   if (ball.health <= 0) {
     eliminateBall(ball);
@@ -671,6 +771,7 @@ function checkWinner() {
   roundStatusElement.textContent = `${teamConfig[state.winner].label} WINS`;
   winnerText.textContent = `${teamConfig[state.winner].label} WINS`;
   winnerBanner.classList.remove("hidden");
+  playSound("win");
 }
 
 function drawArena() {
@@ -960,6 +1061,26 @@ function drawGearIcon(x, y, size, color) {
   context.restore();
 }
 
+function drawAcceleratorIcon(x, y, size, color) {
+  context.save();
+  context.translate(x, y);
+  context.fillStyle = color;
+  context.strokeStyle = "#2f3446";
+  context.lineWidth = Math.max(1.6, size * 0.08);
+
+  context.beginPath();
+  context.moveTo(size * 0.05, -size * 0.48);
+  context.lineTo(-size * 0.28, size * 0.02);
+  context.lineTo(-size * 0.05, size * 0.02);
+  context.lineTo(-size * 0.18, size * 0.48);
+  context.lineTo(size * 0.3, -size * 0.12);
+  context.lineTo(size * 0.06, -size * 0.12);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
 function drawPickups() {
   for (const pickup of state.pickups) {
     const config = pickupConfig[pickup.type];
@@ -980,6 +1101,8 @@ function drawPickups() {
 
     if (pickup.type === "gear") {
       drawGearIcon(0, 0, 29, config.color);
+    } else if (pickup.type === "speedBoost") {
+      drawAcceleratorIcon(0, 0, 30, config.color);
     } else {
       drawWeaponIcon(pickup.type, 0, 1, 32, config.color, -0.08);
     }
@@ -1089,6 +1212,16 @@ function drawBalls() {
       context.lineWidth = 3;
       context.stroke();
     }
+
+    if (ball.speedBoostTimer > 0) {
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius + 11, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(255, 209, 102, 0.72)";
+      context.lineWidth = 3;
+      context.setLineDash([6, 6]);
+      context.stroke();
+      context.setLineDash([]);
+    }
   }
 }
 
@@ -1140,13 +1273,19 @@ function gameLoop(timestamp) {
 }
 
 startButton.addEventListener("click", toggleGame);
-resetButton.addEventListener("click", resetGame);
+resetButton.addEventListener("click", () => {
+  unlockAudio();
+  resetGame();
+});
 playAgainButton.addEventListener("click", () => {
+  unlockAudio();
   resetGame();
   toggleGame();
 });
 
 groupModeButton.addEventListener("click", () => {
+  unlockAudio();
+
   if (state.battleMode === "group") {
     return;
   }
@@ -1156,6 +1295,8 @@ groupModeButton.addEventListener("click", () => {
 });
 
 duelModeButton.addEventListener("click", () => {
+  unlockAudio();
+
   if (state.battleMode === "duel") {
     return;
   }

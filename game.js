@@ -482,21 +482,6 @@ function findClosestEnemy(ball) {
   return closest;
 }
 
-function findClosestPickup(ball) {
-  let closest = null;
-  let closestDistance = Infinity;
-
-  for (const pickup of state.pickups) {
-    const distance = distanceBetween(ball, pickup);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closest = pickup;
-    }
-  }
-
-  return closest;
-}
-
 function steerTowardTargets(deltaSeconds) {
   const speedModifier = Number(speedInput.value) / 100;
 
@@ -506,40 +491,9 @@ function steerTowardTargets(deltaSeconds) {
     }
 
     const target = findClosestEnemy(ball);
-    const pickup = findClosestPickup(ball);
-    const currentDirection = normalizeVector(ball.vx, ball.vy);
-    let desiredDirection = currentDirection;
-    let steeringPower = 22;
-
     ball.targetId = ball.weapon ? target?.id ?? null : null;
-
-    if (!ball.weapon && pickup) {
-      desiredDirection = normalizeVector(pickup.x - ball.x, pickup.y - ball.y);
-      steeringPower = 70;
-    } else if (ball.weapon && target) {
-      const weapon = weaponConfig[ball.weapon.type];
-      const distance = distanceBetween(ball, target);
-      const targetDirection = normalizeVector(target.x - ball.x, target.y - ball.y);
-
-      if (distance < weapon.range * 0.45) {
-        desiredDirection = { x: -targetDirection.x, y: -targetDirection.y };
-        steeringPower = 82;
-      } else if (distance > weapon.range * 0.9) {
-        desiredDirection = targetDirection;
-        steeringPower = 42;
-      } else {
-        desiredDirection = normalizeVector(-targetDirection.y, targetDirection.x);
-        steeringPower = 32;
-      }
-    } else if (pickup) {
-      desiredDirection = normalizeVector(pickup.x - ball.x, pickup.y - ball.y);
-      steeringPower = 36;
-    }
-
-    ball.vx += desiredDirection.x * steeringPower * speedModifier * deltaSeconds;
-    ball.vy += desiredDirection.y * steeringPower * speedModifier * deltaSeconds;
-    ball.vx *= 0.998;
-    ball.vy *= 0.998;
+    ball.vx *= 1 - 0.012 * deltaSeconds;
+    ball.vy *= 1 - 0.012 * deltaSeconds;
 
     const maxSpeed = 245 * speedModifier;
     const minSpeed = 105 * speedModifier;

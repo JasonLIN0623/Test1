@@ -12,6 +12,8 @@ const winnerText = document.querySelector("#winnerText");
 const startButton = document.querySelector("#startButton");
 const resetButton = document.querySelector("#resetButton");
 const playAgainButton = document.querySelector("#playAgainButton");
+const groupModeButton = document.querySelector("#groupModeButton");
+const duelModeButton = document.querySelector("#duelModeButton");
 const ballCountInput = document.querySelector("#ballCountInput");
 const ballCountValue = document.querySelector("#ballCountValue");
 const speedInput = document.querySelector("#speedInput");
@@ -40,6 +42,7 @@ const state = {
   elapsedBeforePause: 0,
   lastFrameTime: 0,
   winner: null,
+  battleMode: "group",
   nextPickupIn: 1.2,
   arena: {
     x: 450,
@@ -184,6 +187,22 @@ function pickWeightedType(config) {
   return entries[0][0];
 }
 
+function getBallsPerTeam() {
+  return state.battleMode === "duel" ? 1 : Number(ballCountInput.value);
+}
+
+function getModeLabel() {
+  return state.battleMode === "duel" ? "個人戰" : "團體戰";
+}
+
+function syncModeControls() {
+  const isDuel = state.battleMode === "duel";
+  groupModeButton.classList.toggle("active", !isDuel);
+  duelModeButton.classList.toggle("active", isDuel);
+  ballCountInput.disabled = isDuel;
+  ballCountValue.textContent = String(getBallsPerTeam());
+}
+
 function resizeCanvas() {
   const size = 900;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -229,7 +248,7 @@ function createBall(team, index, total) {
 }
 
 function resetGame() {
-  const ballCount = Number(ballCountInput.value);
+  const ballCount = getBallsPerTeam();
   state.balls = [];
   state.pickups = [];
   state.projectiles = [];
@@ -247,8 +266,9 @@ function resetGame() {
   }
 
   startButton.textContent = "開始";
-  roundStatusElement.textContent = "LAST BALL STANDING";
+  roundStatusElement.textContent = `${getModeLabel()} / LAST BALL STANDING`;
   winnerBanner.classList.add("hidden");
+  syncModeControls();
   updateHud();
   drawGame();
 }
@@ -423,7 +443,7 @@ function updateHud() {
   const blueBalls = state.balls.filter((ball) => ball.alive && ball.team === "blue");
   const redHealth = redBalls.reduce((total, ball) => total + ball.health, 0);
   const blueHealth = blueBalls.reduce((total, ball) => total + ball.health, 0);
-  const maxTeamHealth = Number(ballCountInput.value) * maxHealth;
+  const maxTeamHealth = getBallsPerTeam() * maxHealth;
 
   redCountElement.textContent = redBalls.length;
   blueCountElement.textContent = blueBalls.length;
@@ -1170,6 +1190,24 @@ resetButton.addEventListener("click", resetGame);
 playAgainButton.addEventListener("click", () => {
   resetGame();
   toggleGame();
+});
+
+groupModeButton.addEventListener("click", () => {
+  if (state.battleMode === "group") {
+    return;
+  }
+
+  state.battleMode = "group";
+  resetGame();
+});
+
+duelModeButton.addEventListener("click", () => {
+  if (state.battleMode === "duel") {
+    return;
+  }
+
+  state.battleMode = "duel";
+  resetGame();
 });
 
 ballCountInput.addEventListener("input", () => {

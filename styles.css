@@ -187,9 +187,29 @@ canvas {
 }
 
 .controls {
-  grid-template-columns: 110px 110px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 190px 110px 110px minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   padding: 10px;
+}
+
+.mode-control {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.mode-control button {
+  min-width: 0;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.mode-control button.active {
+  border-color: rgba(61, 220, 151, 0.72);
+  background: rgba(61, 220, 151, 0.16);
+  color: #dffbed;
 }
 
 .control-field {
@@ -232,6 +252,10 @@ input[type="range"] {
 
   .controls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .mode-control {
+    grid-column: 1 / -1;
   }
 
   .control-field {

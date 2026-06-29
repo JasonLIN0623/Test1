@@ -103,6 +103,7 @@ const room3DState = {
   renderer: null,
   scene: null,
   camera: null,
+  routeGroup: null,
   actorGroup: null,
   projectileGroup: null,
   actorMeshes: new Map(),
@@ -121,9 +122,10 @@ const pickupLifetime = 10;
 const weaponReadyDelay = 1;
 const speedBoostDuration = 4;
 const speedBoostMultiplier = 1.45;
-const roomScale = 1;
+const roomScale = 1.1;
 const roomScaleCenter = { x: 450, y: 450 };
 const room3DScale = 0.08;
+const showRoomAiRoutes = false;
 
 function scaleRoomNumber(value, axis) {
   return Math.round(roomScaleCenter[axis] + (value - roomScaleCenter[axis]) * roomScale);
@@ -1043,6 +1045,10 @@ function updateRoomSquadWaypoint(ball) {
   const objective = route[ball.roomWaypointIndex];
   if (distanceBetween(ball, objective) < 58) {
     ball.roomWaypointIndex += 1;
+    const nextObjective = route[Math.min(ball.roomWaypointIndex, route.length - 1)];
+    const scanDirection = normalizeVector(nextObjective.x - ball.x, nextObjective.y - ball.y);
+    ball.lookAngle = Math.atan2(scanDirection.y, scanDirection.x);
+    ball.stopTimer = Math.max(ball.stopTimer ?? 0, randomBetween(0.18, 0.42));
     ball.awarenessTimer = 0;
   }
 }
@@ -1651,6 +1657,7 @@ function createBall(team, index, total) {
     speedBoostTimer: 0,
     alive: true,
     targetId: null,
+    lookAngle: Math.atan2(direction.y, direction.x),
     awarenessTimer: randomBetween(0, 0.6),
     ambushMode: false,
     roomAction: "patrol",
@@ -2052,6 +2059,7 @@ function moveRoomBallToward(ball, point, speed, deltaSeconds) {
   const movementPoint = chooseRoomMovementPoint(ball, safePoint);
   const movementDistance = distanceBetween(ball, movementPoint);
   const desiredDirection = normalizeVector(movementPoint.x - ball.x, movementPoint.y - ball.y);
+  ball.lookAngle = Math.atan2(desiredDirection.y, desiredDirection.x);
   const steeringDirection = getRoomSteeringDirection(ball, desiredDirection);
   const arrivalSpeed = Math.min(distance, movementDistance) < 70
     ? speed * clamp(Math.min(distance, movementDistance) / 70, 0.28, 1)
@@ -2541,6 +2549,57 @@ function drawBlueprintAnnotations(bounds) {
   context.restore();
 }
 
+function drawRoomTacticalRoutes() {
+  if (!showRoomAiRoutes) {
+    return;
+  }
+
+  context.save();
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  for (const [team, routes] of Object.entries(roomBreachRoutes)) {
+    const teamColor = teamConfig[team].color;
+
+    routes.forEach((route, routeIndex) => {
+      if (route.length < 2) {
+        return;
+      }
+
+      context.beginPath();
+      route.forEach((point, pointIndex) => {
+        if (pointIndex === 0) {
+          context.moveTo(point.x, point.y);
+        } else {
+          context.lineTo(point.x, point.y);
+        }
+      });
+      context.strokeStyle = colorWithAlpha(teamColor, routeIndex === 0 ? 0.46 : 0.12);
+      context.lineWidth = routeIndex === 0 ? 5 : 2;
+      context.setLineDash(routeIndex === 0 ? [] : [8, 16]);
+      context.stroke();
+
+      context.setLineDash([]);
+      if (routeIndex !== 0) {
+        return;
+      }
+
+      route.forEach((point, pointIndex) => {
+        const radius = pointIndex === 0 ? 7 : 5;
+        context.beginPath();
+        context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        context.fillStyle = colorWithAlpha(teamColor, pointIndex === 0 ? 0.68 : 0.42);
+        context.fill();
+        context.strokeStyle = "rgba(255, 255, 255, 0.52)";
+        context.lineWidth = 1;
+        context.stroke();
+      });
+    });
+  }
+
+  context.restore();
+}
+
 function drawRoomMap() {
   context.clearRect(0, 0, 900, 900);
   const { bounds } = roomMap;
@@ -2548,6 +2607,7 @@ function drawRoomMap() {
   context.save();
   drawBlueprintGrid(bounds);
   drawBlueprintAnnotations(bounds);
+  drawRoomTacticalRoutes();
 
   context.lineWidth = 6;
   context.strokeStyle = "#101010";
@@ -2640,6 +2700,54 @@ function addRoom3DWall(sceneGroup, rect, material) {
 
   edge.position.copy(wall.position);
   sceneGroup.add(wall, edge);
+}
+
+function createRoom3DRouteGroup() {
+  const THREE = getThree();
+  const routeGroup = new THREE.Group();
+
+  if (!showRoomAiRoutes) {
+    return routeGroup;
+  }
+
+  for (const [team, routes] of Object.entries(roomBreachRoutes)) {
+    const color = new THREE.Color(teamConfig[team].color);
+
+    routes.forEach((route, routeIndex) => {
+      if (route.length < 2) {
+        return;
+      }
+
+      const linePoints = route.map((point) => {
+        const position = roomPointTo3D(point);
+        return new THREE.Vector3(position.x, 0.16 + routeIndex * 0.018, position.z);
+      });
+      const material = new THREE.LineBasicMaterial({
+        color,
+        transparent: true,
+        opacity: routeIndex === 0 ? 0.8 : 0.42,
+      });
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePoints), material);
+      routeGroup.add(line);
+
+      route.forEach((point, pointIndex) => {
+        const position = roomPointTo3D(point);
+        const marker = new THREE.Mesh(
+          new THREE.CylinderGeometry(pointIndex === 0 ? 0.36 : 0.24, pointIndex === 0 ? 0.36 : 0.24, 0.06, 18),
+          new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: pointIndex === 0 ? 0.82 : 0.56,
+          }),
+        );
+
+        marker.position.set(position.x, 0.2 + routeIndex * 0.02, position.z);
+        routeGroup.add(marker);
+      });
+    });
+  }
+
+  return routeGroup;
 }
 
 function createRoom3DActor(ball) {
@@ -2748,6 +2856,7 @@ function ensureRoom3DScene() {
   };
 
   const mapGroup = new THREE.Group();
+  const routeGroup = createRoom3DRouteGroup();
   const actorGroup = new THREE.Group();
   const projectileGroup = new THREE.Group();
   const floorBox = roomRectTo3D(roomMap.bounds);
@@ -2784,12 +2893,13 @@ function ensureRoom3DScene() {
     addRoom3DWall(mapGroup, wall, room3DState.materials.wall);
   }
 
-  scene.add(mapGroup, actorGroup, projectileGroup);
+  scene.add(mapGroup, routeGroup, actorGroup, projectileGroup);
 
   room3DState.initialized = true;
   room3DState.renderer = renderer;
   room3DState.scene = scene;
   room3DState.camera = camera;
+  room3DState.routeGroup = routeGroup;
   room3DState.actorGroup = actorGroup;
   room3DState.projectileGroup = projectileGroup;
   resizeRoom3DRenderer();
@@ -3283,6 +3393,10 @@ function getWeaponAimAngle(ball) {
 
   if (target) {
     return Math.atan2(target.y - ball.y, target.x - ball.x);
+  }
+
+  if (Number.isFinite(ball.lookAngle)) {
+    return ball.lookAngle;
   }
 
   return Math.atan2(ball.vy, ball.vx);

@@ -1,5 +1,6 @@
 const canvas = document.querySelector("#gameCanvas");
 const context = canvas.getContext("2d");
+const room3dStage = document.querySelector("#room3dStage");
 const redViewCanvas = document.querySelector("#redViewCanvas");
 const blueViewCanvas = document.querySelector("#blueViewCanvas");
 const greenViewCanvas = document.querySelector("#greenViewCanvas");
@@ -97,6 +98,20 @@ const state = {
   },
 };
 
+const room3DState = {
+  initialized: false,
+  renderer: null,
+  scene: null,
+  camera: null,
+  actorGroup: null,
+  projectileGroup: null,
+  actorMeshes: new Map(),
+  lastWidth: 0,
+  lastHeight: 0,
+  failed: false,
+  materials: {},
+};
+
 const maxHealth = 100;
 const damagePerHit = 14;
 const hitCooldown = 0.38;
@@ -108,6 +123,7 @@ const speedBoostDuration = 4;
 const speedBoostMultiplier = 1.45;
 const roomScale = 1;
 const roomScaleCenter = { x: 450, y: 450 };
+const room3DScale = 0.08;
 
 function scaleRoomNumber(value, axis) {
   return Math.round(roomScaleCenter[axis] + (value - roomScaleCenter[axis]) * roomScale);
@@ -1585,6 +1601,7 @@ function syncModeControls() {
   ballCountInput.disabled = isDuel;
   ballCountValue.textContent = String(getBallsPerTeam());
   updateRoomTeamPanels();
+  setRoom3DVisibility();
 }
 
 function resizeCanvas() {
@@ -2551,6 +2568,324 @@ function drawRoomMap() {
   context.restore();
 }
 
+function getThree() {
+  return window.THREE;
+}
+
+function hasRoom3DSupport() {
+  return Boolean(room3dStage && getThree() && !room3DState.failed);
+}
+
+function canCreateWebGLContext() {
+  const testCanvas = document.createElement("canvas");
+  const contextOptions = { antialias: false, alpha: false };
+  const gl = testCanvas.getContext("webgl2", contextOptions)
+    ?? testCanvas.getContext("webgl", contextOptions)
+    ?? testCanvas.getContext("experimental-webgl", contextOptions);
+
+  if (!gl) {
+    return false;
+  }
+
+  gl.getExtension("WEBGL_lose_context")?.loseContext();
+  return true;
+}
+
+function setRoom3DVisibility() {
+  const isRoom = isRoomMode();
+  const useRoom3D = isRoom && hasRoom3DSupport();
+
+  document.body.classList.toggle("room-mode", isRoom);
+  room3dStage?.classList.toggle("hidden", !useRoom3D);
+  canvas.classList.toggle("hidden", useRoom3D);
+}
+
+function roomPointTo3D(point) {
+  return {
+    x: (point.x - roomScaleCenter.x) * room3DScale,
+    z: (point.y - roomScaleCenter.y) * room3DScale,
+  };
+}
+
+function roomRectTo3D(rect) {
+  const center = roomPointTo3D(getRectCenter(rect));
+
+  return {
+    x: center.x,
+    z: center.z,
+    width: Math.max(0.45, rect.width * room3DScale),
+    depth: Math.max(0.45, rect.height * room3DScale),
+  };
+}
+
+function createRoom3DBox(rect, height, material, yOffset = 0) {
+  const THREE = getThree();
+  const box = roomRectTo3D(rect);
+  const geometry = new THREE.BoxGeometry(box.width, height, box.depth);
+  const mesh = new THREE.Mesh(geometry, material);
+
+  mesh.position.set(box.x, yOffset + height / 2, box.z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function addRoom3DWall(sceneGroup, rect, material) {
+  const THREE = getThree();
+  const wall = createRoom3DBox(rect, 4.2, material);
+  const edge = new THREE.LineSegments(
+    new THREE.EdgesGeometry(wall.geometry),
+    room3DState.materials.edge,
+  );
+
+  edge.position.copy(wall.position);
+  sceneGroup.add(wall, edge);
+}
+
+function createRoom3DActor(ball) {
+  const THREE = getThree();
+  const group = new THREE.Group();
+  const teamColor = new THREE.Color(teamConfig[ball.team].color);
+  const bodyMaterial = new THREE.MeshStandardMaterial({
+    color: teamColor,
+    roughness: 0.62,
+    metalness: 0.04,
+  });
+  const darkMaterial = new THREE.MeshStandardMaterial({
+    color: 0x29303a,
+    roughness: 0.74,
+    metalness: 0.08,
+  });
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    color: teamColor,
+    transparent: true,
+    opacity: 0.5,
+  });
+  const radius = Math.max(0.9, ball.radius * room3DScale * 0.78);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(radius + 0.3, 0.055, 8, 32), ringMaterial);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.92, 0.7, 28), bodyMaterial);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(radius * 1.35, 0.42, radius * 0.86), darkMaterial);
+  const weapon = new THREE.Mesh(new THREE.BoxGeometry(radius * 1.55, 0.16, 0.16), darkMaterial);
+
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.06;
+  body.position.y = 0.48;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  head.position.set(radius * 0.16, 0.96, 0);
+  head.castShadow = true;
+  weapon.position.set(radius * 1.12, 0.82, 0);
+  weapon.castShadow = true;
+
+  group.add(ring, body, head, weapon);
+  group.userData.bodyMaterial = bodyMaterial;
+  group.userData.ringMaterial = ringMaterial;
+  return group;
+}
+
+function ensureRoom3DScene() {
+  if (!hasRoom3DSupport()) {
+    return false;
+  }
+
+  if (room3DState.initialized) {
+    return true;
+  }
+
+  const THREE = getThree();
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xc75a50);
+
+  if (!canCreateWebGLContext()) {
+    room3DState.failed = true;
+    setRoom3DVisibility();
+    return false;
+  }
+
+  let renderer = null;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+  } catch (error) {
+    room3DState.failed = true;
+    setRoom3DVisibility();
+    return false;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  if ("outputColorSpace" in renderer) {
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+  }
+
+  room3dStage.textContent = "";
+  room3dStage.appendChild(renderer.domElement);
+
+  const camera = new THREE.OrthographicCamera(-44, 44, 34, -34, 0.1, 300);
+  camera.position.set(46, 56, 62);
+  camera.lookAt(0, 0, 0);
+
+  const ambient = new THREE.HemisphereLight(0xfff0cf, 0x803b39, 2.2);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.25);
+  keyLight.position.set(22, 42, 28);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.width = 2048;
+  keyLight.shadow.mapSize.height = 2048;
+  keyLight.shadow.camera.near = 1;
+  keyLight.shadow.camera.far = 110;
+  keyLight.shadow.camera.left = -48;
+  keyLight.shadow.camera.right = 48;
+  keyLight.shadow.camera.top = 48;
+  keyLight.shadow.camera.bottom = -48;
+  scene.add(ambient, keyLight);
+
+  room3DState.materials = {
+    floor: new THREE.MeshStandardMaterial({ color: 0xf6d889, roughness: 0.72, metalness: 0.02 }),
+    floorSide: new THREE.MeshStandardMaterial({ color: 0xa14a58, roughness: 0.78, metalness: 0.02 }),
+    wall: new THREE.MeshStandardMaterial({ color: 0xd77559, roughness: 0.7, metalness: 0.02 }),
+    outerWall: new THREE.MeshStandardMaterial({ color: 0xbf5b4f, roughness: 0.72, metalness: 0.02 }),
+    edge: new THREE.LineBasicMaterial({ color: 0x8e3f45, transparent: true, opacity: 0.32 }),
+    projectile: new THREE.MeshBasicMaterial({ color: 0xfff2a3 }),
+  };
+
+  const mapGroup = new THREE.Group();
+  const actorGroup = new THREE.Group();
+  const projectileGroup = new THREE.Group();
+  const floorBox = roomRectTo3D(roomMap.bounds);
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(floorBox.width + 5.2, 0.72, floorBox.depth + 5.2),
+    room3DState.materials.floor,
+  );
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(floorBox.width + 6.5, 1.1, floorBox.depth + 6.5),
+    room3DState.materials.floorSide,
+  );
+  const grid = new THREE.GridHelper(Math.max(floorBox.width, floorBox.depth) + 4.8, 32, 0xd6bd82, 0xeed99d);
+  const boundary = [
+    { x: roomMap.bounds.x - 8, y: roomMap.bounds.y - 8, width: roomMap.bounds.width + 16, height: 10 },
+    { x: roomMap.bounds.x - 8, y: roomMap.bounds.y + roomMap.bounds.height - 2, width: roomMap.bounds.width + 16, height: 10 },
+    { x: roomMap.bounds.x - 8, y: roomMap.bounds.y - 8, width: 10, height: roomMap.bounds.height + 16 },
+    { x: roomMap.bounds.x + roomMap.bounds.width - 2, y: roomMap.bounds.y - 8, width: 10, height: roomMap.bounds.height + 16 },
+  ];
+
+  base.position.y = -0.82;
+  base.receiveShadow = true;
+  floor.position.y = -0.36;
+  floor.receiveShadow = true;
+  grid.position.y = 0.04;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.32;
+  mapGroup.add(base, floor, grid);
+
+  for (const wall of boundary) {
+    addRoom3DWall(mapGroup, wall, room3DState.materials.outerWall);
+  }
+
+  for (const wall of roomMap.walls) {
+    addRoom3DWall(mapGroup, wall, room3DState.materials.wall);
+  }
+
+  scene.add(mapGroup, actorGroup, projectileGroup);
+
+  room3DState.initialized = true;
+  room3DState.renderer = renderer;
+  room3DState.scene = scene;
+  room3DState.camera = camera;
+  room3DState.actorGroup = actorGroup;
+  room3DState.projectileGroup = projectileGroup;
+  resizeRoom3DRenderer();
+  return true;
+}
+
+function resizeRoom3DRenderer() {
+  if (!room3DState.initialized || !room3dStage) {
+    return;
+  }
+
+  const width = Math.max(2, Math.floor(room3dStage.clientWidth));
+  const height = Math.max(2, Math.floor(room3dStage.clientHeight));
+
+  if (width === room3DState.lastWidth && height === room3DState.lastHeight) {
+    return;
+  }
+
+  const aspect = width / height;
+  const viewHeight = 74;
+  room3DState.lastWidth = width;
+  room3DState.lastHeight = height;
+  room3DState.renderer.setSize(width, height, false);
+  room3DState.camera.left = -viewHeight * aspect / 2;
+  room3DState.camera.right = viewHeight * aspect / 2;
+  room3DState.camera.top = viewHeight / 2;
+  room3DState.camera.bottom = -viewHeight / 2;
+  room3DState.camera.updateProjectionMatrix();
+}
+
+function updateRoom3DActors() {
+  const liveIds = new Set();
+
+  for (const ball of state.balls) {
+    if (!ball.alive) {
+      continue;
+    }
+
+    liveIds.add(ball.id);
+    let actor = room3DState.actorMeshes.get(ball.id);
+    if (!actor) {
+      actor = createRoom3DActor(ball);
+      room3DState.actorMeshes.set(ball.id, actor);
+      room3DState.actorGroup.add(actor);
+    }
+
+    const point = roomPointTo3D(ball);
+    actor.position.set(point.x, 0, point.z);
+    actor.rotation.y = -getWeaponAimAngle(ball);
+    actor.visible = true;
+  }
+
+  for (const [id, actor] of room3DState.actorMeshes.entries()) {
+    if (liveIds.has(id)) {
+      continue;
+    }
+
+    room3DState.actorGroup.remove(actor);
+    room3DState.actorMeshes.delete(id);
+  }
+}
+
+function updateRoom3DProjectiles() {
+  const THREE = getThree();
+  const group = room3DState.projectileGroup;
+
+  while (group.children.length > 0) {
+    group.remove(group.children[0]);
+  }
+
+  for (const projectile of state.projectiles) {
+    const point = roomPointTo3D(projectile);
+    const angle = Math.atan2(projectile.vy, projectile.vx);
+    const shot = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 0.12, 0.12),
+      room3DState.materials.projectile,
+    );
+
+    shot.position.set(point.x, 1.2, point.z);
+    shot.rotation.y = -angle;
+    group.add(shot);
+  }
+}
+
+function renderRoom3D() {
+  if (!ensureRoom3DScene()) {
+    return false;
+  }
+
+  resizeRoom3DRenderer();
+  updateRoom3DActors();
+  updateRoom3DProjectiles();
+  room3DState.renderer.render(room3DState.scene, room3DState.camera);
+  return true;
+}
+
 function drawArena() {
   if (isRoomMode()) {
     drawRoomMap();
@@ -3271,6 +3606,11 @@ function drawTeamViews() {
 }
 
 function drawGame() {
+  if (isRoomMode() && renderRoom3D()) {
+    drawTeamViews();
+    return;
+  }
+
   drawArena();
   drawTargetLines();
   drawPickups();
@@ -3362,6 +3702,12 @@ speedInput.addEventListener("input", () => {
 
 window.addEventListener("resize", () => {
   resizeCanvas();
+  resizeRoom3DRenderer();
+  drawGame();
+});
+
+window.addEventListener("three-ready", () => {
+  setRoom3DVisibility();
   drawGame();
 });
 

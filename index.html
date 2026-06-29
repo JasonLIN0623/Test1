@@ -57,6 +57,7 @@
 
       <section class="arena-wrap" aria-label="遊戲區域">
         <canvas id="gameCanvas" width="900" height="900"></canvas>
+        <div id="room3dStage" class="room3d-stage hidden" aria-hidden="true"></div>
         <div id="winnerBanner" class="winner-banner hidden">
           <span id="winnerText">RED WINS</span>
           <button id="playAgainButton" type="button">再戰一局</button>
@@ -115,6 +116,12 @@
       </section>
     </main>
 
-    <script src="game.js?v=20260629-grid-cqb"></script>
+    <script type="module">
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+      window.THREE = THREE;
+      window.dispatchEvent(new Event("three-ready"));
+    </script>
+    <script src="game.js?v=20260629-room-3d"></script>
   </body>
 </html>

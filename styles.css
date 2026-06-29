@@ -58,7 +58,8 @@ button:hover {
 }
 
 .hud,
-.controls {
+.controls,
+.team-views {
   display: grid;
   gap: 10px;
 }
@@ -155,11 +156,55 @@ button:hover {
   background-size: 42px 42px;
 }
 
-canvas {
+#gameCanvas {
   width: min(100%, 82vh);
   max-width: 100%;
   aspect-ratio: 1;
   display: block;
+}
+
+.team-views {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.view-panel {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(18, 22, 33, 0.88);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+}
+
+.view-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.view-title span {
+  color: var(--muted);
+}
+
+.red-view strong {
+  color: var(--red);
+}
+
+.blue-view strong {
+  color: var(--blue);
+}
+
+.view-panel canvas {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: #080b12;
 }
 
 .winner-banner {
@@ -262,8 +307,12 @@ input[type="range"] {
     grid-column: 1 / -1;
   }
 
-  canvas {
+  #gameCanvas {
     width: min(100%, 72vh);
+  }
+
+  .team-views {
+    grid-template-columns: 1fr;
   }
 
   .winner-banner {

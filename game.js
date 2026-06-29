@@ -1,5 +1,9 @@
 const canvas = document.querySelector("#gameCanvas");
 const context = canvas.getContext("2d");
+const redViewCanvas = document.querySelector("#redViewCanvas");
+const blueViewCanvas = document.querySelector("#blueViewCanvas");
+const redViewContext = redViewCanvas.getContext("2d");
+const blueViewContext = blueViewCanvas.getContext("2d");
 
 const redCountElement = document.querySelector("#redCount");
 const blueCountElement = document.querySelector("#blueCount");
@@ -38,6 +42,7 @@ const state = {
   pickups: [],
   projectiles: [],
   particles: [],
+  roomDoors: [],
   running: false,
   startedAt: 0,
   elapsedBeforePause: 0,
@@ -57,6 +62,7 @@ const maxHealth = 100;
 const damagePerHit = 14;
 const hitCooldown = 0.38;
 const maxPickups = 7;
+const maxRoomPickups = 10;
 const pickupLifetime = 10;
 const weaponReadyDelay = 1;
 const speedBoostDuration = 4;
@@ -87,6 +93,15 @@ const roomMap = {
     ],
   },
 };
+
+const roomPickupZones = [
+  { x: 130, y: 140, width: 210, height: 145 },
+  { x: 560, y: 140, width: 210, height: 145 },
+  { x: 130, y: 370, width: 210, height: 140 },
+  { x: 560, y: 370, width: 210, height: 140 },
+  { x: 130, y: 610, width: 210, height: 140 },
+  { x: 560, y: 610, width: 210, height: 140 },
+];
 
 const audioState = {
   context: null,
@@ -229,8 +244,30 @@ function isRoomMode() {
   return state.battleMode === "room";
 }
 
+function createRoomDoors() {
+  return roomMap.doors.map((door, index) => {
+    const pushAxis = door.height > door.width ? "x" : "y";
+    const travel = pushAxis === "y" ? 66 : 72;
+
+    return {
+      ...door,
+      id: `door-${index}`,
+      baseX: door.x,
+      baseY: door.y,
+      pushAxis,
+      minPosition: door[pushAxis] - travel,
+      maxPosition: door[pushAxis] + travel,
+      velocity: 0,
+    };
+  });
+}
+
+function getRoomDoors() {
+  return state.roomDoors.length > 0 ? state.roomDoors : roomMap.doors;
+}
+
 function getRoomObstacles() {
-  return [...roomMap.walls, ...roomMap.doors];
+  return [...roomMap.walls, ...getRoomDoors()];
 }
 
 function getRectCenter(rect) {
@@ -300,8 +337,21 @@ function randomPointInRoomMap(padding = 28, team = null) {
   return getRectCenter(team ? roomMap.spawnZones[team][0] : roomMap.bounds);
 }
 
+function randomPickupPointInRoom(padding = 42) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const zone = roomPickupZones[Math.floor(Math.random() * roomPickupZones.length)];
+    const point = randomPointInRect(zone, padding);
+
+    if (isPointInRoomMap(point, padding)) {
+      return point;
+    }
+  }
+
+  return randomPointInRoomMap(padding);
+}
+
 function getRoomPatrolPoints() {
-  const doorPoints = roomMap.doors.flatMap((door) => {
+  const doorPoints = getRoomDoors().flatMap((door) => {
     const center = getRectCenter(door);
     const isVertical = door.height > door.width;
     const offset = 58;
@@ -338,6 +388,78 @@ function chooseRoomPatrolPoint(ball) {
   }
 
   return randomPointInRoomMap(34);
+}
+
+function getRoomCoverPoints() {
+  const wallCoverPoints = roomMap.walls.flatMap((wall) => {
+    const center = getRectCenter(wall);
+    const vertical = wall.height > wall.width;
+    const offset = 54;
+
+    return vertical
+      ? [
+        { x: wall.x - offset, y: center.y - 72 },
+        { x: wall.x - offset, y: center.y + 72 },
+        { x: wall.x + wall.width + offset, y: center.y - 72 },
+        { x: wall.x + wall.width + offset, y: center.y + 72 },
+      ]
+      : [
+        { x: center.x - 82, y: wall.y - offset },
+        { x: center.x + 82, y: wall.y - offset },
+        { x: center.x - 82, y: wall.y + wall.height + offset },
+        { x: center.x + 82, y: wall.y + wall.height + offset },
+      ];
+  });
+
+  const cornerPoints = roomPickupZones.flatMap((zone) => [
+    { x: zone.x + 42, y: zone.y + 42 },
+    { x: zone.x + zone.width - 42, y: zone.y + zone.height - 42 },
+  ]);
+
+  return [...wallCoverPoints, ...cornerPoints, ...getRoomPatrolPoints()]
+    .filter((point) => isPointInRoomMap(point, 30));
+}
+
+function getVisibleEnemiesFromPoint(point, team) {
+  return state.balls.filter((ball) => {
+    return ball.alive
+      && ball.team !== team
+      && distanceBetween(point, ball) < 360
+      && hasLineOfSight(point, ball);
+  });
+}
+
+function chooseRoomCoverPoint(ball) {
+  const points = getRoomCoverPoints();
+  const scoredPoints = points.map((point) => {
+    const visibleEnemies = getVisibleEnemiesFromPoint(point, ball.team).length;
+    const distance = distanceBetween(ball, point);
+    const homeBias = ball.team === "red"
+      ? clamp((roomMap.bounds.x + roomMap.bounds.width - point.x) / roomMap.bounds.width, 0, 1)
+      : clamp((point.x - roomMap.bounds.x) / roomMap.bounds.width, 0, 1);
+    const score = visibleEnemies * 220 + distance * 0.45 - homeBias * 55 + Math.random() * 24;
+
+    return { point, score };
+  }).sort((a, b) => a.score - b.score);
+
+  return scoredPoints[0]?.point ?? chooseRoomPatrolPoint(ball);
+}
+
+function chooseRoomAmbushPoint(ball) {
+  const enemies = state.balls.filter((candidate) => candidate.alive && candidate.team !== ball.team);
+  const points = getRoomCoverPoints();
+  const scoredPoints = points.map((point) => {
+    const closestEnemyDistance = enemies.reduce((closest, enemy) => {
+      return Math.min(closest, distanceBetween(point, enemy));
+    }, Infinity);
+    const visibleEnemies = getVisibleEnemiesFromPoint(point, ball.team).length;
+    const midRangeBonus = Math.abs(closestEnemyDistance - 190);
+    const score = visibleEnemies * 260 + midRangeBonus + distanceBetween(ball, point) * 0.25 + Math.random() * 20;
+
+    return { point, score };
+  }).sort((a, b) => a.score - b.score);
+
+  return scoredPoints[0]?.point ?? chooseRoomCoverPoint(ball);
 }
 
 function lineIntersectsRect(start, end, rect) {
@@ -381,27 +503,25 @@ function hasLineOfSight(start, end) {
   return !getRoomObstacles().some((obstacle) => lineIntersectsRect(start, end, obstacle));
 }
 
-function resolveBallAgainstRect(ball, rect) {
-  const nearestX = clamp(ball.x, rect.x, rect.x + rect.width);
-  const nearestY = clamp(ball.y, rect.y, rect.y + rect.height);
-  let dx = ball.x - nearestX;
-  let dy = ball.y - nearestY;
+function getCircleRectCollision(circle, rect) {
+  const nearestX = clamp(circle.x, rect.x, rect.x + rect.width);
+  const nearestY = clamp(circle.y, rect.y, rect.y + rect.height);
+  let dx = circle.x - nearestX;
+  let dy = circle.y - nearestY;
   let distance = Math.hypot(dx, dy);
 
-  if (distance >= ball.radius) {
-    return false;
+  if (distance >= circle.radius) {
+    return null;
   }
 
   if (distance < 0.001) {
     const distances = [
-      { value: Math.abs(ball.x - rect.x), nx: -1, ny: 0, x: rect.x - ball.radius, y: ball.y },
-      { value: Math.abs(rect.x + rect.width - ball.x), nx: 1, ny: 0, x: rect.x + rect.width + ball.radius, y: ball.y },
-      { value: Math.abs(ball.y - rect.y), nx: 0, ny: -1, x: ball.x, y: rect.y - ball.radius },
-      { value: Math.abs(rect.y + rect.height - ball.y), nx: 0, ny: 1, x: ball.x, y: rect.y + rect.height + ball.radius },
+      { value: Math.abs(circle.x - rect.x), nx: -1, ny: 0 },
+      { value: Math.abs(rect.x + rect.width - circle.x), nx: 1, ny: 0 },
+      { value: Math.abs(circle.y - rect.y), nx: 0, ny: -1 },
+      { value: Math.abs(rect.y + rect.height - circle.y), nx: 0, ny: 1 },
     ].sort((a, b) => a.value - b.value);
     const side = distances[0];
-    ball.x = side.x;
-    ball.y = side.y;
     dx = side.nx;
     dy = side.ny;
     distance = 1;
@@ -409,51 +529,120 @@ function resolveBallAgainstRect(ball, rect) {
 
   const normalX = dx / distance;
   const normalY = dy / distance;
-  const overlap = ball.radius - distance;
+  const overlap = circle.radius - distance;
+
+  return { normalX, normalY, overlap };
+}
+
+function resolveBallAgainstRect(ball, rect, options = {}) {
+  const { bounce = true } = options;
+  const collision = getCircleRectCollision(ball, rect);
+
+  if (!collision) {
+    return false;
+  }
+
+  const { normalX, normalY, overlap } = collision;
   ball.x += normalX * overlap;
   ball.y += normalY * overlap;
 
   const dot = ball.vx * normalX + ball.vy * normalY;
   if (dot < 0) {
-    ball.vx -= 2 * dot * normalX;
-    ball.vy -= 2 * dot * normalY;
-    ball.vx *= 0.9;
-    ball.vy *= 0.9;
+    if (bounce) {
+      ball.vx -= 2 * dot * normalX;
+      ball.vy -= 2 * dot * normalY;
+      ball.vx *= 0.9;
+      ball.vy *= 0.9;
+    } else {
+      ball.vx -= dot * normalX;
+      ball.vy -= dot * normalY;
+      ball.vx *= 0.86;
+      ball.vy *= 0.86;
+    }
   }
 
   return true;
 }
 
+function pushRoomDoorFromBall(ball, door) {
+  const collision = getCircleRectCollision(ball, door);
+
+  if (!collision) {
+    return false;
+  }
+
+  const axis = door.pushAxis;
+  const doorCenter = getRectCenter(door);
+  const axisVelocity = axis === "x" ? ball.vx : ball.vy;
+  let pushDirection = Math.sign(axisVelocity);
+
+  if (pushDirection === 0) {
+    pushDirection = axis === "x"
+      ? Math.sign(ball.x - doorCenter.x)
+      : Math.sign(ball.y - doorCenter.y);
+  }
+
+  if (pushDirection === 0) {
+    pushDirection = 1;
+  }
+
+  const pushDistance = clamp(Math.abs(axisVelocity) * 0.018 + collision.overlap * 0.55, 1.2, 8);
+  door[axis] = clamp(door[axis] + pushDirection * pushDistance, door.minPosition, door.maxPosition);
+  door.velocity = pushDirection * Math.max(Math.abs(door.velocity), pushDistance * 16);
+
+  return resolveBallAgainstRect(ball, door, { bounce: false });
+}
+
+function updateRoomDoors(deltaSeconds) {
+  for (const door of state.roomDoors) {
+    if (Math.abs(door.velocity) < 1) {
+      door.velocity = 0;
+      continue;
+    }
+
+    door[door.pushAxis] = clamp(
+      door[door.pushAxis] + door.velocity * deltaSeconds,
+      door.minPosition,
+      door.maxPosition,
+    );
+    door.velocity *= 0.84;
+  }
+}
+
 function resolveBallAgainstRoomMap(ball) {
   const { bounds } = roomMap;
-  let bounced = false;
+  let touched = false;
 
   if (ball.x < bounds.x + ball.radius) {
     ball.x = bounds.x + ball.radius;
-    ball.vx = Math.abs(ball.vx) * 0.92;
-    bounced = true;
+    ball.vx = Math.max(0, ball.vx) * 0.42;
+    touched = true;
   } else if (ball.x > bounds.x + bounds.width - ball.radius) {
     ball.x = bounds.x + bounds.width - ball.radius;
-    ball.vx = -Math.abs(ball.vx) * 0.92;
-    bounced = true;
+    ball.vx = Math.min(0, ball.vx) * 0.42;
+    touched = true;
   }
 
   if (ball.y < bounds.y + ball.radius) {
     ball.y = bounds.y + ball.radius;
-    ball.vy = Math.abs(ball.vy) * 0.92;
-    bounced = true;
+    ball.vy = Math.max(0, ball.vy) * 0.42;
+    touched = true;
   } else if (ball.y > bounds.y + bounds.height - ball.radius) {
     ball.y = bounds.y + bounds.height - ball.radius;
-    ball.vy = -Math.abs(ball.vy) * 0.92;
-    bounced = true;
+    ball.vy = Math.min(0, ball.vy) * 0.42;
+    touched = true;
   }
 
-  for (const obstacle of getRoomObstacles()) {
-    bounced = resolveBallAgainstRect(ball, obstacle) || bounced;
+  for (const wall of roomMap.walls) {
+    touched = resolveBallAgainstRect(ball, wall, { bounce: false }) || touched;
   }
 
-  if (bounced) {
-    createImpact(ball.x, ball.y, "#ffffff", 3);
+  for (const door of getRoomDoors()) {
+    touched = pushRoomDoorFromBall(ball, door) || touched;
+  }
+
+  if (touched) {
+    createImpact(ball.x, ball.y, "rgba(255, 255, 255, 0.72)", 2);
   }
 }
 
@@ -470,6 +659,40 @@ function pickWeightedType(config) {
   }
 
   return entries[0][0];
+}
+
+function getPickupPool() {
+  if (!isRoomMode()) {
+    return pickupConfig;
+  }
+
+  return Object.fromEntries(
+    Object.entries(pickupConfig)
+      .filter(([type]) => type !== "speedBoost" && type !== "gear")
+      .map(([type, config]) => {
+        const weaponWeightBoost = weaponConfig[type] ? 1.45 : 1;
+        return [type, { ...config, weight: config.weight * weaponWeightBoost }];
+      }),
+  );
+}
+
+function getAliveTeamCounts() {
+  return state.balls.reduce((counts, ball) => {
+    if (ball.alive) {
+      counts[ball.team] += 1;
+    }
+
+    return counts;
+  }, { red: 0, blue: 0 });
+}
+
+function getEnemyTeam(team) {
+  return team === "red" ? "blue" : "red";
+}
+
+function isTeamOutnumbered(team) {
+  const counts = getAliveTeamCounts();
+  return counts[getEnemyTeam(team)] - counts[team] >= 2;
 }
 
 function unlockAudio() {
@@ -736,7 +959,7 @@ function createBall(team, index, total) {
       state.arena.x - x + randomBetween(-140, 140),
       state.arena.y - y + randomBetween(-140, 140),
     );
-  const baseSpeed = randomBetween(145, 205);
+  const baseSpeed = isRoomMode() ? randomBetween(72, 112) : randomBetween(145, 205);
 
   return {
     id: `${team}-${index}-${Date.now()}`,
@@ -755,6 +978,7 @@ function createBall(team, index, total) {
     alive: true,
     targetId: null,
     awarenessTimer: randomBetween(0, 0.6),
+    ambushMode: false,
     patrolPoint: roomSpawn ? randomPointInRoomMap(34) : null,
     trail: [],
   };
@@ -766,6 +990,7 @@ function resetGame() {
   state.pickups = [];
   state.projectiles = [];
   state.particles = [];
+  state.roomDoors = isRoomMode() ? createRoomDoors() : [];
   state.running = false;
   state.startedAt = 0;
   state.elapsedBeforePause = 0;
@@ -778,6 +1003,10 @@ function resetGame() {
     state.balls.push(createBall("blue", index, ballCount));
   }
 
+  if (isRoomMode()) {
+    seedRoomPickups();
+  }
+
   startButton.textContent = "開始";
   roundStatusElement.textContent = `${getModeLabel()} / LAST BALL STANDING`;
   winnerBanner.classList.add("hidden");
@@ -787,12 +1016,14 @@ function resetGame() {
 }
 
 function spawnPickup() {
-  if (state.pickups.length >= maxPickups) {
+  const pickupLimit = isRoomMode() ? maxRoomPickups : maxPickups;
+
+  if (state.pickups.length >= pickupLimit) {
     return;
   }
 
-  const type = pickWeightedType(pickupConfig);
-  const position = randomPointInArena(42);
+  const type = pickWeightedType(getPickupPool());
+  const position = isRoomMode() ? randomPickupPointInRoom(42) : randomPointInArena(42);
 
   state.pickups.push({
     id: `${type}-${Date.now()}-${Math.random()}`,
@@ -803,6 +1034,14 @@ function spawnPickup() {
     age: 0,
     ttl: pickupLifetime,
   });
+}
+
+function seedRoomPickups() {
+  const roomPickupCount = Math.min(maxRoomPickups, 8);
+
+  for (let index = 0; index < roomPickupCount; index += 1) {
+    spawnPickup();
+  }
 }
 
 function updatePickupSpawner(deltaSeconds) {
@@ -847,7 +1086,7 @@ function applyPickup(ball, pickup) {
     return;
   }
 
-  if (pickup.type === "speedBoost") {
+  if (pickup.type === "speedBoost" && !isRoomMode()) {
     const speed = Math.hypot(ball.vx, ball.vy);
     const direction = normalizeVector(ball.vx, ball.vy);
     const boostedSpeed = Math.max(speed * 1.45, 300);
@@ -856,6 +1095,10 @@ function applyPickup(ball, pickup) {
     ball.speedBoostTimer = speedBoostDuration;
     createImpact(ball.x, ball.y, pickupConfig.speedBoost.color, 22);
     playSound("speed");
+    return;
+  }
+
+  if (pickup.type === "speedBoost") {
     return;
   }
 
@@ -1027,21 +1270,121 @@ function findClosestEnemy(ball) {
   return closest;
 }
 
+function isCircleClearInRoom(circle) {
+  if (!rectContainsPoint(roomMap.bounds, circle, circle.radius)) {
+    return false;
+  }
+
+  return !getRoomObstacles().some((obstacle) => circleOverlapsRect(circle, obstacle));
+}
+
+function rotateVector(vector, radians) {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+
+  return {
+    x: vector.x * cos - vector.y * sin,
+    y: vector.x * sin + vector.y * cos,
+  };
+}
+
+function getRoomSteeringDirection(ball, desiredDirection) {
+  const lookAhead = ball.radius + 34;
+  const testCircle = (direction) => ({
+    x: ball.x + direction.x * lookAhead,
+    y: ball.y + direction.y * lookAhead,
+    radius: ball.radius + 6,
+  });
+
+  if (isCircleClearInRoom(testCircle(desiredDirection))) {
+    return desiredDirection;
+  }
+
+  const alternatives = [0.55, -0.55, 1.05, -1.05, Math.PI * 0.5, -Math.PI * 0.5]
+    .map((angle) => rotateVector(desiredDirection, angle));
+
+  return alternatives.find((direction) => isCircleClearInRoom(testCircle(direction))) ?? {
+    x: -desiredDirection.x,
+    y: -desiredDirection.y,
+  };
+}
+
+function moveRoomBallToward(ball, point, speed, deltaSeconds) {
+  const distance = distanceBetween(ball, point);
+
+  if (distance < 8) {
+    ball.vx *= 0.62;
+    ball.vy *= 0.62;
+    return;
+  }
+
+  const desiredDirection = normalizeVector(point.x - ball.x, point.y - ball.y);
+  const steeringDirection = getRoomSteeringDirection(ball, desiredDirection);
+  const arrivalSpeed = distance < 70 ? speed * clamp(distance / 70, 0.28, 1) : speed;
+  const desiredVelocityX = steeringDirection.x * arrivalSpeed;
+  const desiredVelocityY = steeringDirection.y * arrivalSpeed;
+  const blend = Math.min(1, deltaSeconds * 4.4);
+
+  ball.vx += (desiredVelocityX - ball.vx) * blend;
+  ball.vy += (desiredVelocityY - ball.vy) * blend;
+}
+
+function keepRoomSpacing(ball, deltaSeconds) {
+  for (const otherBall of state.balls) {
+    if (!otherBall.alive || otherBall.id === ball.id) {
+      continue;
+    }
+
+    const distance = distanceBetween(ball, otherBall);
+    const preferredDistance = ball.team === otherBall.team ? 42 : 58;
+
+    if (distance <= 0 || distance > preferredDistance) {
+      continue;
+    }
+
+    const direction = normalizeVector(ball.x - otherBall.x, ball.y - otherBall.y);
+    const spacingForce = (preferredDistance - distance) * 2.2;
+    ball.vx += direction.x * spacingForce * deltaSeconds;
+    ball.vy += direction.y * spacingForce * deltaSeconds;
+  }
+}
+
 function applyRoomAwareness(ball, target, deltaSeconds) {
   ball.awarenessTimer = Math.max(0, ball.awarenessTimer - deltaSeconds);
+  const outnumbered = isTeamOutnumbered(ball.team);
+  ball.ambushMode = outnumbered;
+
+  if (outnumbered) {
+    const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
+    const canAmbush = target && weapon && distanceBetween(ball, target) <= weapon.range * 0.92;
+
+    if (!canAmbush) {
+      if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 34 || ball.awarenessTimer <= 0) {
+        ball.patrolPoint = chooseRoomAmbushPoint(ball);
+        ball.awarenessTimer = randomBetween(1.8, 3.2);
+      }
+
+      moveRoomBallToward(ball, ball.patrolPoint, 118, deltaSeconds);
+      keepRoomSpacing(ball, deltaSeconds);
+      return;
+    }
+  }
 
   if (target) {
     const distance = distanceBetween(ball, target);
     const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
-    const preferredDistance = weapon ? weapon.range * 0.56 : 84;
+    const preferredDistance = weapon ? weapon.range * (outnumbered ? 0.72 : 0.56) : 96;
     const direction = normalizeVector(target.x - ball.x, target.y - ball.y);
-    const strafe = normalizeVector(-direction.y, direction.x);
-    const chaseForce = distance > preferredDistance ? 150 : -90;
-    const strafeForce = weapon ? 42 : 18;
+    const strafeDirection = normalizeVector(-direction.y, direction.x);
+    const sideStep = Math.sin(performance.now() * 0.0015 + ball.radius) > 0 ? 1 : -1;
+    const anchor = {
+      x: ball.x + direction.x * (distance > preferredDistance ? 70 : -58) + strafeDirection.x * sideStep * 42,
+      y: ball.y + direction.y * (distance > preferredDistance ? 70 : -58) + strafeDirection.y * sideStep * 42,
+    };
 
     ball.patrolPoint = null;
-    ball.vx += (direction.x * chaseForce + strafe.x * strafeForce) * deltaSeconds;
-    ball.vy += (direction.y * chaseForce + strafe.y * strafeForce) * deltaSeconds;
+    moveRoomBallToward(ball, anchor, weapon ? 132 : 146, deltaSeconds);
+    keepRoomSpacing(ball, deltaSeconds);
     return;
   }
 
@@ -1050,9 +1393,8 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
     ball.awarenessTimer = randomBetween(1.4, 2.7);
   }
 
-  const direction = normalizeVector(ball.patrolPoint.x - ball.x, ball.patrolPoint.y - ball.y);
-  ball.vx += direction.x * 118 * deltaSeconds;
-  ball.vy += direction.y * 118 * deltaSeconds;
+  moveRoomBallToward(ball, ball.patrolPoint, 122, deltaSeconds);
+  keepRoomSpacing(ball, deltaSeconds);
 }
 
 function steerTowardTargets(deltaSeconds) {
@@ -1073,9 +1415,9 @@ function steerTowardTargets(deltaSeconds) {
       applyRoomAwareness(ball, target, deltaSeconds);
     }
 
-    const boostMultiplier = ball.speedBoostTimer > 0 ? speedBoostMultiplier : 1;
-    const maxSpeed = (isRoomMode() ? 220 : 245) * speedModifier * boostMultiplier;
-    const minSpeed = (isRoomMode() ? 88 : 105) * speedModifier;
+    const boostMultiplier = !isRoomMode() && ball.speedBoostTimer > 0 ? speedBoostMultiplier : 1;
+    const maxSpeed = (isRoomMode() ? 168 : 245) * speedModifier * boostMultiplier;
+    const minSpeed = (isRoomMode() ? 0 : 105) * speedModifier;
     const updatedSpeed = Math.hypot(ball.vx, ball.vy);
 
     if (updatedSpeed > maxSpeed) {
@@ -1128,6 +1470,10 @@ function moveBalls(deltaSeconds) {
 }
 
 function resolveCollisions() {
+  if (isRoomMode()) {
+    return;
+  }
+
   for (let firstIndex = 0; firstIndex < state.balls.length; firstIndex += 1) {
     const firstBall = state.balls[firstIndex];
     if (!firstBall.alive) {
@@ -1175,13 +1521,6 @@ function resolveCollisions() {
     }
   }
 
-  if (isRoomMode()) {
-    for (const ball of state.balls) {
-      if (ball.alive) {
-        resolveBallAgainstRoomMap(ball);
-      }
-    }
-  }
 }
 
 function handleHit(firstBall, secondBall) {
@@ -1303,7 +1642,7 @@ function drawRoomMap() {
     context.strokeRect(wall.x, wall.y, wall.width, wall.height);
   }
 
-  for (const door of roomMap.doors) {
+  for (const door of getRoomDoors()) {
     context.fillStyle = "#8b6f45";
     context.fillRect(door.x, door.y, door.width, door.height);
     context.strokeStyle = "rgba(255, 209, 102, 0.42)";
@@ -1758,6 +2097,14 @@ function drawBalls() {
       context.stroke();
     }
 
+    if (isRoomMode() && ball.ambushMode) {
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius + 10, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(12, 16, 24, 0.78)";
+      context.lineWidth = 4;
+      context.stroke();
+    }
+
     if (ball.speedBoostTimer > 0) {
       context.beginPath();
       context.arc(ball.x, ball.y, ball.radius + 11, 0, Math.PI * 2);
@@ -1782,6 +2129,105 @@ function drawParticles() {
   }
 }
 
+function isPointVisibleToTeam(point, team, maxDistance = 430) {
+  return state.balls.some((ball) => {
+    return ball.alive
+      && ball.team === team
+      && distanceBetween(ball, point) <= maxDistance
+      && hasLineOfSight(ball, point);
+  });
+}
+
+function drawTeamView(team, viewCanvas, viewContext) {
+  const width = viewCanvas.width;
+  const height = viewCanvas.height;
+  viewContext.clearRect(0, 0, width, height);
+  viewContext.fillStyle = "#080b12";
+  viewContext.fillRect(0, 0, width, height);
+
+  if (!isRoomMode()) {
+    viewContext.fillStyle = "rgba(244, 247, 251, 0.72)";
+    viewContext.font = "700 15px system-ui, sans-serif";
+    viewContext.textAlign = "center";
+    viewContext.fillText("房間戰啟用隊伍視角", width / 2, height / 2);
+    return;
+  }
+
+  const bounds = roomMap.bounds;
+  const padding = 12;
+  const scale = Math.min((width - padding * 2) / bounds.width, (height - padding * 2) / bounds.height);
+  const offsetX = (width - bounds.width * scale) / 2;
+  const offsetY = (height - bounds.height * scale) / 2;
+  const toViewX = (x) => offsetX + (x - bounds.x) * scale;
+  const toViewY = (y) => offsetY + (y - bounds.y) * scale;
+  const drawRect = (rect, fillStyle, strokeStyle = null) => {
+    viewContext.fillStyle = fillStyle;
+    viewContext.fillRect(toViewX(rect.x), toViewY(rect.y), rect.width * scale, rect.height * scale);
+
+    if (strokeStyle) {
+      viewContext.strokeStyle = strokeStyle;
+      viewContext.lineWidth = 1;
+      viewContext.strokeRect(toViewX(rect.x), toViewY(rect.y), rect.width * scale, rect.height * scale);
+    }
+  };
+
+  drawRect(bounds, "rgba(17, 22, 34, 0.96)", "rgba(255, 255, 255, 0.32)");
+
+  for (const wall of roomMap.walls) {
+    drawRect(wall, "#535b6e", "rgba(255, 255, 255, 0.22)");
+  }
+
+  for (const door of getRoomDoors()) {
+    drawRect(door, "#9a784a", "rgba(255, 209, 102, 0.52)");
+  }
+
+  for (const pickup of state.pickups) {
+    if (!isPointVisibleToTeam(pickup, team)) {
+      continue;
+    }
+
+    const config = pickupConfig[pickup.type];
+    viewContext.beginPath();
+    viewContext.arc(toViewX(pickup.x), toViewY(pickup.y), 4.8, 0, Math.PI * 2);
+    viewContext.fillStyle = config.color;
+    viewContext.fill();
+  }
+
+  for (const ball of state.balls) {
+    if (!ball.alive) {
+      continue;
+    }
+
+    const isOwnTeam = ball.team === team;
+    if (!isOwnTeam && !isPointVisibleToTeam(ball, team)) {
+      continue;
+    }
+
+    viewContext.beginPath();
+    viewContext.arc(toViewX(ball.x), toViewY(ball.y), isOwnTeam ? 6 : 5, 0, Math.PI * 2);
+    viewContext.fillStyle = isOwnTeam ? teamConfig[ball.team].color : "rgba(255, 255, 255, 0.88)";
+    viewContext.fill();
+
+    if (isOwnTeam && ball.ambushMode) {
+      viewContext.beginPath();
+      viewContext.arc(toViewX(ball.x), toViewY(ball.y), 8, 0, Math.PI * 2);
+      viewContext.strokeStyle = "rgba(0, 0, 0, 0.8)";
+      viewContext.lineWidth = 2;
+      viewContext.stroke();
+    }
+  }
+
+  viewContext.fillStyle = teamConfig[team].color;
+  viewContext.font = "800 12px system-ui, sans-serif";
+  viewContext.textAlign = "left";
+  viewContext.fillText(`${teamConfig[team].label} VISION`, 10, 18);
+}
+
+function drawTeamViews() {
+  drawTeamView("red", redViewCanvas, redViewContext);
+  drawTeamView("blue", blueViewCanvas, blueViewContext);
+}
+
 function drawGame() {
   drawArena();
   drawTargetLines();
@@ -1789,6 +2235,7 @@ function drawGame() {
   drawProjectiles();
   drawParticles();
   drawBalls();
+  drawTeamViews();
 }
 
 function gameLoop(timestamp) {
@@ -1803,6 +2250,7 @@ function gameLoop(timestamp) {
   updatePickupSpawner(deltaSeconds);
   steerTowardTargets(deltaSeconds);
   moveBalls(deltaSeconds);
+  updateRoomDoors(deltaSeconds);
   collectPickups();
   updateWeapons(deltaSeconds);
   resolveCollisions();

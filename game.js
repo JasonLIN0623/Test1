@@ -544,6 +544,40 @@ function findPriorityWeaponPickup(ball) {
     .sort((a, b) => a.score - b.score)[0].pickup;
 }
 
+function getWeaponApproachPoint(ball, pickup) {
+  if (hasLineOfSight(ball, pickup)) {
+    return pickup;
+  }
+
+  const approachPoints = [...getRoomPatrolPoints(), ...getRoomCoverPoints()]
+    .filter((point) => hasLineOfSight(point, pickup))
+    .map((point) => ({
+      point,
+      score: distanceBetween(ball, point) * 0.7 + distanceBetween(point, pickup),
+    }))
+    .sort((a, b) => a.score - b.score);
+
+  return approachPoints[0]?.point ?? chooseRoomEscapePoint(ball);
+}
+
+function shouldUnarmedEscape(ball, target, weaponPickup) {
+  if (!target) {
+    return false;
+  }
+
+  const enemyDistance = distanceBetween(ball, target);
+  if (enemyDistance > 150) {
+    return false;
+  }
+
+  if (!weaponPickup) {
+    return true;
+  }
+
+  const weaponDistance = distanceBetween(ball, weaponPickup);
+  return weaponDistance > enemyDistance || isPointVisibleToEnemies(weaponPickup, ball.team, 300);
+}
+
 function chooseRoomCoverPoint(ball) {
   const points = getRoomCoverPoints();
   const scoredPoints = points.map((point) => {
@@ -823,6 +857,14 @@ function getEnemyTeam(team) {
 function isTeamOutnumbered(team) {
   const counts = getAliveTeamCounts();
   return counts[getEnemyTeam(team)] - counts[team] >= 2;
+}
+
+function teamHasWeapon(team) {
+  return state.balls.some((ball) => ball.alive && ball.team === team && ball.weapon);
+}
+
+function bothRoomTeamsHaveWeapons() {
+  return teamHasWeapon("red") && teamHasWeapon("blue");
 }
 
 function unlockAudio() {
@@ -1175,11 +1217,21 @@ function seedRoomPickups() {
 }
 
 function updatePickupSpawner(deltaSeconds) {
+  if (isRoomMode() && bothRoomTeamsHaveWeapons()) {
+    state.pickups = [];
+    state.nextPickupIn = 1.2;
+    return;
+  }
+
   state.nextPickupIn -= deltaSeconds;
 
   if (state.nextPickupIn <= 0) {
     spawnPickup();
     state.nextPickupIn = randomBetween(1.6, 3.2);
+  }
+
+  if (isRoomMode()) {
+    return;
   }
 
   for (const pickup of state.pickups) {
@@ -1257,10 +1309,13 @@ function updateWeapons(deltaSeconds) {
     }
 
     fireWeapon(ball, target, weapon);
-    ball.weapon.ammo -= 1;
     ball.weaponCooldown = weapon.cooldown;
 
-    if (ball.weapon.ammo <= 0) {
+    if (!isRoomMode()) {
+      ball.weapon.ammo -= 1;
+    }
+
+    if (!isRoomMode() && ball.weapon.ammo <= 0) {
       ball.weapon = null;
     }
   }
@@ -1487,9 +1542,24 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
   if (!ball.weapon) {
     const weaponPickup = findPriorityWeaponPickup(ball);
 
+    if (shouldUnarmedEscape(ball, target, weaponPickup)) {
+      ball.patrolPoint = chooseRoomEscapePoint(ball);
+      moveRoomBallToward(ball, ball.patrolPoint, 142, deltaSeconds);
+      keepRoomSpacing(ball, deltaSeconds);
+      return;
+    }
+
     if (weaponPickup) {
-      ball.patrolPoint = weaponPickup;
-      moveRoomBallToward(ball, weaponPickup, outnumbered ? 136 : 152, deltaSeconds);
+      const approachPoint = getWeaponApproachPoint(ball, weaponPickup);
+      ball.patrolPoint = approachPoint;
+      moveRoomBallToward(ball, approachPoint, outnumbered ? 136 : 152, deltaSeconds);
+      keepRoomSpacing(ball, deltaSeconds);
+      return;
+    }
+
+    if (target) {
+      ball.patrolPoint = chooseRoomEscapePoint(ball);
+      moveRoomBallToward(ball, ball.patrolPoint, 128, deltaSeconds);
       keepRoomSpacing(ball, deltaSeconds);
       return;
     }

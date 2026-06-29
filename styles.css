@@ -187,7 +187,7 @@ canvas {
 }
 
 .controls {
-  grid-template-columns: 190px 110px 110px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 260px 110px 110px minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   padding: 10px;
 }
@@ -195,7 +195,7 @@ canvas {
 .mode-control {
   min-width: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 

@@ -14,6 +14,7 @@ const resetButton = document.querySelector("#resetButton");
 const playAgainButton = document.querySelector("#playAgainButton");
 const groupModeButton = document.querySelector("#groupModeButton");
 const duelModeButton = document.querySelector("#duelModeButton");
+const roomModeButton = document.querySelector("#roomModeButton");
 const ballCountInput = document.querySelector("#ballCountInput");
 const ballCountValue = document.querySelector("#ballCountValue");
 const speedInput = document.querySelector("#speedInput");
@@ -60,6 +61,32 @@ const pickupLifetime = 10;
 const weaponReadyDelay = 1;
 const speedBoostDuration = 4;
 const speedBoostMultiplier = 1.45;
+const roomMap = {
+  bounds: { x: 90, y: 105, width: 720, height: 690 },
+  walls: [
+    { x: 438, y: 105, width: 24, height: 260 },
+    { x: 438, y: 535, width: 24, height: 260 },
+    { x: 90, y: 322, width: 238, height: 22 },
+    { x: 572, y: 322, width: 238, height: 22 },
+    { x: 90, y: 556, width: 246, height: 22 },
+    { x: 564, y: 556, width: 246, height: 22 },
+  ],
+  doors: [
+    { x: 438, y: 398, width: 24, height: 72 },
+    { x: 300, y: 322, width: 56, height: 22 },
+    { x: 544, y: 556, width: 56, height: 22 },
+  ],
+  spawnZones: {
+    red: [
+      { x: 130, y: 140, width: 210, height: 145 },
+      { x: 130, y: 610, width: 210, height: 140 },
+    ],
+    blue: [
+      { x: 560, y: 140, width: 210, height: 145 },
+      { x: 560, y: 610, width: 210, height: 140 },
+    ],
+  },
+};
 
 const audioState = {
   context: null,
@@ -194,7 +221,43 @@ function normalizeVector(x, y) {
   return { x: x / length, y: y / length };
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function isRoomMode() {
+  return state.battleMode === "room";
+}
+
+function getRoomObstacles() {
+  return [...roomMap.walls, ...roomMap.doors];
+}
+
+function getRectCenter(rect) {
+  return {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2,
+  };
+}
+
+function rectContainsPoint(rect, point, padding = 0) {
+  return point.x >= rect.x + padding
+    && point.x <= rect.x + rect.width - padding
+    && point.y >= rect.y + padding
+    && point.y <= rect.y + rect.height - padding;
+}
+
+function circleOverlapsRect(circle, rect, padding = 0) {
+  const nearestX = clamp(circle.x, rect.x - padding, rect.x + rect.width + padding);
+  const nearestY = clamp(circle.y, rect.y - padding, rect.y + rect.height + padding);
+  return Math.hypot(circle.x - nearestX, circle.y - nearestY) <= circle.radius;
+}
+
 function randomPointInArena(padding = 34) {
+  if (isRoomMode()) {
+    return randomPointInRoomMap(padding);
+  }
+
   const angle = randomBetween(0, Math.PI * 2);
   const radius = Math.sqrt(Math.random()) * (state.arena.radius - padding);
 
@@ -202,6 +265,196 @@ function randomPointInArena(padding = 34) {
     x: state.arena.x + Math.cos(angle) * radius,
     y: state.arena.y + Math.sin(angle) * radius,
   };
+}
+
+function isPointInRoomMap(point, padding = 24) {
+  if (!rectContainsPoint(roomMap.bounds, point, padding)) {
+    return false;
+  }
+
+  return !getRoomObstacles().some((obstacle) => {
+    return circleOverlapsRect({ ...point, radius: padding }, obstacle);
+  });
+}
+
+function randomPointInRect(rect, padding = 24) {
+  return {
+    x: randomBetween(rect.x + padding, rect.x + rect.width - padding),
+    y: randomBetween(rect.y + padding, rect.y + rect.height - padding),
+  };
+}
+
+function randomPointInRoomMap(padding = 28, team = null) {
+  const zones = team ? roomMap.spawnZones[team] : null;
+
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const sourceRects = zones ?? [roomMap.bounds];
+    const rect = sourceRects[Math.floor(Math.random() * sourceRects.length)];
+    const point = randomPointInRect(rect, padding);
+
+    if (isPointInRoomMap(point, padding)) {
+      return point;
+    }
+  }
+
+  return getRectCenter(team ? roomMap.spawnZones[team][0] : roomMap.bounds);
+}
+
+function getRoomPatrolPoints() {
+  const doorPoints = roomMap.doors.flatMap((door) => {
+    const center = getRectCenter(door);
+    const isVertical = door.height > door.width;
+    const offset = 58;
+
+    return isVertical
+      ? [
+        { x: center.x - offset, y: center.y },
+        { x: center.x + offset, y: center.y },
+      ]
+      : [
+        { x: center.x, y: center.y - offset },
+        { x: center.x, y: center.y + offset },
+      ];
+  });
+
+  const roomCenters = [
+    { x: 220, y: 215 },
+    { x: 680, y: 215 },
+    { x: 220, y: 455 },
+    { x: 680, y: 455 },
+    { x: 220, y: 685 },
+    { x: 680, y: 685 },
+    getRectCenter(roomMap.bounds),
+  ];
+
+  return [...doorPoints, ...roomCenters].filter((point) => isPointInRoomMap(point, 28));
+}
+
+function chooseRoomPatrolPoint(ball) {
+  const patrolPoints = getRoomPatrolPoints().filter((point) => distanceBetween(ball, point) > 80);
+
+  if (patrolPoints.length > 0 && Math.random() < 0.72) {
+    return patrolPoints[Math.floor(Math.random() * patrolPoints.length)];
+  }
+
+  return randomPointInRoomMap(34);
+}
+
+function lineIntersectsRect(start, end, rect) {
+  if (rectContainsPoint(rect, start) || rectContainsPoint(rect, end)) {
+    return true;
+  }
+
+  const left = rect.x;
+  const right = rect.x + rect.width;
+  const top = rect.y;
+  const bottom = rect.y + rect.height;
+  const edges = [
+    [{ x: left, y: top }, { x: right, y: top }],
+    [{ x: right, y: top }, { x: right, y: bottom }],
+    [{ x: right, y: bottom }, { x: left, y: bottom }],
+    [{ x: left, y: bottom }, { x: left, y: top }],
+  ];
+
+  return edges.some(([edgeStart, edgeEnd]) => {
+    return lineSegmentsIntersect(start, end, edgeStart, edgeEnd);
+  });
+}
+
+function lineSegmentsIntersect(a, b, c, d) {
+  const denominator = ((d.y - c.y) * (b.x - a.x)) - ((d.x - c.x) * (b.y - a.y));
+
+  if (Math.abs(denominator) < 0.00001) {
+    return false;
+  }
+
+  const ua = (((d.x - c.x) * (a.y - c.y)) - ((d.y - c.y) * (a.x - c.x))) / denominator;
+  const ub = (((b.x - a.x) * (a.y - c.y)) - ((b.y - a.y) * (a.x - c.x))) / denominator;
+  return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
+}
+
+function hasLineOfSight(start, end) {
+  if (!isRoomMode()) {
+    return true;
+  }
+
+  return !getRoomObstacles().some((obstacle) => lineIntersectsRect(start, end, obstacle));
+}
+
+function resolveBallAgainstRect(ball, rect) {
+  const nearestX = clamp(ball.x, rect.x, rect.x + rect.width);
+  const nearestY = clamp(ball.y, rect.y, rect.y + rect.height);
+  let dx = ball.x - nearestX;
+  let dy = ball.y - nearestY;
+  let distance = Math.hypot(dx, dy);
+
+  if (distance >= ball.radius) {
+    return false;
+  }
+
+  if (distance < 0.001) {
+    const distances = [
+      { value: Math.abs(ball.x - rect.x), nx: -1, ny: 0, x: rect.x - ball.radius, y: ball.y },
+      { value: Math.abs(rect.x + rect.width - ball.x), nx: 1, ny: 0, x: rect.x + rect.width + ball.radius, y: ball.y },
+      { value: Math.abs(ball.y - rect.y), nx: 0, ny: -1, x: ball.x, y: rect.y - ball.radius },
+      { value: Math.abs(rect.y + rect.height - ball.y), nx: 0, ny: 1, x: ball.x, y: rect.y + rect.height + ball.radius },
+    ].sort((a, b) => a.value - b.value);
+    const side = distances[0];
+    ball.x = side.x;
+    ball.y = side.y;
+    dx = side.nx;
+    dy = side.ny;
+    distance = 1;
+  }
+
+  const normalX = dx / distance;
+  const normalY = dy / distance;
+  const overlap = ball.radius - distance;
+  ball.x += normalX * overlap;
+  ball.y += normalY * overlap;
+
+  const dot = ball.vx * normalX + ball.vy * normalY;
+  if (dot < 0) {
+    ball.vx -= 2 * dot * normalX;
+    ball.vy -= 2 * dot * normalY;
+    ball.vx *= 0.9;
+    ball.vy *= 0.9;
+  }
+
+  return true;
+}
+
+function resolveBallAgainstRoomMap(ball) {
+  const { bounds } = roomMap;
+  let bounced = false;
+
+  if (ball.x < bounds.x + ball.radius) {
+    ball.x = bounds.x + ball.radius;
+    ball.vx = Math.abs(ball.vx) * 0.92;
+    bounced = true;
+  } else if (ball.x > bounds.x + bounds.width - ball.radius) {
+    ball.x = bounds.x + bounds.width - ball.radius;
+    ball.vx = -Math.abs(ball.vx) * 0.92;
+    bounced = true;
+  }
+
+  if (ball.y < bounds.y + ball.radius) {
+    ball.y = bounds.y + ball.radius;
+    ball.vy = Math.abs(ball.vy) * 0.92;
+    bounced = true;
+  } else if (ball.y > bounds.y + bounds.height - ball.radius) {
+    ball.y = bounds.y + bounds.height - ball.radius;
+    ball.vy = -Math.abs(ball.vy) * 0.92;
+    bounced = true;
+  }
+
+  for (const obstacle of getRoomObstacles()) {
+    bounced = resolveBallAgainstRect(ball, obstacle) || bounced;
+  }
+
+  if (bounced) {
+    createImpact(ball.x, ball.y, "#ffffff", 3);
+  }
 }
 
 function pickWeightedType(config) {
@@ -436,13 +689,23 @@ function getBallsPerTeam() {
 }
 
 function getModeLabel() {
-  return state.battleMode === "duel" ? "個人戰" : "團體戰";
+  if (state.battleMode === "duel") {
+    return "個人戰";
+  }
+
+  if (state.battleMode === "room") {
+    return "房間戰";
+  }
+
+  return "團體戰";
 }
 
 function syncModeControls() {
   const isDuel = state.battleMode === "duel";
-  groupModeButton.classList.toggle("active", !isDuel);
+  const isRoom = isRoomMode();
+  groupModeButton.classList.toggle("active", !isDuel && !isRoom);
   duelModeButton.classList.toggle("active", isDuel);
+  roomModeButton.classList.toggle("active", isRoom);
   ballCountInput.disabled = isDuel;
   ballCountValue.textContent = String(getBallsPerTeam());
 }
@@ -462,14 +725,17 @@ function resizeCanvas() {
 }
 
 function createBall(team, index, total) {
+  const roomSpawn = isRoomMode() ? randomPointInRoomMap(34, team) : null;
   const angle = (Math.PI * 2 * index) / total + (team === "red" ? 0 : Math.PI);
   const spread = randomBetween(90, 250);
-  const x = state.arena.x + Math.cos(angle) * spread;
-  const y = state.arena.y + Math.sin(angle) * spread;
-  const direction = normalizeVector(
-    state.arena.x - x + randomBetween(-140, 140),
-    state.arena.y - y + randomBetween(-140, 140),
-  );
+  const x = roomSpawn?.x ?? state.arena.x + Math.cos(angle) * spread;
+  const y = roomSpawn?.y ?? state.arena.y + Math.sin(angle) * spread;
+  const direction = roomSpawn
+    ? normalizeVector(team === "red" ? 1 : -1, randomBetween(-0.35, 0.35))
+    : normalizeVector(
+      state.arena.x - x + randomBetween(-140, 140),
+      state.arena.y - y + randomBetween(-140, 140),
+    );
   const baseSpeed = randomBetween(145, 205);
 
   return {
@@ -488,6 +754,8 @@ function createBall(team, index, total) {
     speedBoostTimer: 0,
     alive: true,
     targetId: null,
+    awarenessTimer: randomBetween(0, 0.6),
+    patrolPoint: roomSpawn ? randomPointInRoomMap(34) : null,
     trail: [],
   };
 }
@@ -661,8 +929,16 @@ function updateProjectiles(deltaSeconds) {
     projectile.y += projectile.vy * deltaSeconds;
     projectile.life -= deltaSeconds;
 
-    const distanceFromCenter = distanceBetween(projectile, state.arena);
-    if (distanceFromCenter > state.arena.radius) {
+    if (isRoomMode()) {
+      const insideBounds = rectContainsPoint(roomMap.bounds, projectile);
+      const hitObstacle = getRoomObstacles().some((obstacle) => rectContainsPoint(obstacle, projectile));
+
+      if (!insideBounds || hitObstacle) {
+        projectile.life = 0;
+        createImpact(projectile.x, projectile.y, "#ffffff", 3);
+        continue;
+      }
+    } else if (distanceBetween(projectile, state.arena) > state.arena.radius) {
       projectile.life = 0;
       continue;
     }
@@ -737,6 +1013,10 @@ function findClosestEnemy(ball) {
       continue;
     }
 
+    if (!hasLineOfSight(ball, otherBall)) {
+      continue;
+    }
+
     const distance = distanceBetween(ball, otherBall);
     if (distance < closestDistance) {
       closestDistance = distance;
@@ -745,6 +1025,34 @@ function findClosestEnemy(ball) {
   }
 
   return closest;
+}
+
+function applyRoomAwareness(ball, target, deltaSeconds) {
+  ball.awarenessTimer = Math.max(0, ball.awarenessTimer - deltaSeconds);
+
+  if (target) {
+    const distance = distanceBetween(ball, target);
+    const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
+    const preferredDistance = weapon ? weapon.range * 0.56 : 84;
+    const direction = normalizeVector(target.x - ball.x, target.y - ball.y);
+    const strafe = normalizeVector(-direction.y, direction.x);
+    const chaseForce = distance > preferredDistance ? 150 : -90;
+    const strafeForce = weapon ? 42 : 18;
+
+    ball.patrolPoint = null;
+    ball.vx += (direction.x * chaseForce + strafe.x * strafeForce) * deltaSeconds;
+    ball.vy += (direction.y * chaseForce + strafe.y * strafeForce) * deltaSeconds;
+    return;
+  }
+
+  if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 44 || ball.awarenessTimer <= 0) {
+    ball.patrolPoint = chooseRoomPatrolPoint(ball);
+    ball.awarenessTimer = randomBetween(1.4, 2.7);
+  }
+
+  const direction = normalizeVector(ball.patrolPoint.x - ball.x, ball.patrolPoint.y - ball.y);
+  ball.vx += direction.x * 118 * deltaSeconds;
+  ball.vy += direction.y * 118 * deltaSeconds;
 }
 
 function steerTowardTargets(deltaSeconds) {
@@ -756,14 +1064,18 @@ function steerTowardTargets(deltaSeconds) {
     }
 
     const target = findClosestEnemy(ball);
-    ball.targetId = ball.weapon ? target?.id ?? null : null;
+    ball.targetId = (ball.weapon || isRoomMode()) ? target?.id ?? null : null;
     ball.speedBoostTimer = Math.max(0, ball.speedBoostTimer - deltaSeconds);
     ball.vx *= 1 - 0.012 * deltaSeconds;
     ball.vy *= 1 - 0.012 * deltaSeconds;
 
+    if (isRoomMode()) {
+      applyRoomAwareness(ball, target, deltaSeconds);
+    }
+
     const boostMultiplier = ball.speedBoostTimer > 0 ? speedBoostMultiplier : 1;
-    const maxSpeed = 245 * speedModifier * boostMultiplier;
-    const minSpeed = 105 * speedModifier;
+    const maxSpeed = (isRoomMode() ? 220 : 245) * speedModifier * boostMultiplier;
+    const minSpeed = (isRoomMode() ? 88 : 105) * speedModifier;
     const updatedSpeed = Math.hypot(ball.vx, ball.vy);
 
     if (updatedSpeed > maxSpeed) {
@@ -790,6 +1102,11 @@ function moveBalls(deltaSeconds) {
 
     if (ball.trail.length > 12) {
       ball.trail.shift();
+    }
+
+    if (isRoomMode()) {
+      resolveBallAgainstRoomMap(ball);
+      continue;
     }
 
     const fromCenter = normalizeVector(ball.x - state.arena.x, ball.y - state.arena.y);
@@ -854,6 +1171,14 @@ function resolveCollisions() {
 
       if (firstBall.team !== secondBall.team) {
         handleHit(firstBall, secondBall);
+      }
+    }
+  }
+
+  if (isRoomMode()) {
+    for (const ball of state.balls) {
+      if (ball.alive) {
+        resolveBallAgainstRoomMap(ball);
       }
     }
   }
@@ -943,7 +1268,58 @@ function checkWinner() {
   playSound("win");
 }
 
+function drawRoomMap() {
+  context.clearRect(0, 0, 900, 900);
+  const { bounds } = roomMap;
+
+  context.save();
+  context.fillStyle = "rgba(11, 15, 24, 0.92)";
+  context.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+  context.strokeStyle = "rgba(255, 255, 255, 0.16)";
+  context.lineWidth = 1;
+  for (let x = bounds.x + 90; x < bounds.x + bounds.width; x += 90) {
+    context.beginPath();
+    context.moveTo(x, bounds.y);
+    context.lineTo(x, bounds.y + bounds.height);
+    context.stroke();
+  }
+  for (let y = bounds.y + 90; y < bounds.y + bounds.height; y += 90) {
+    context.beginPath();
+    context.moveTo(bounds.x, y);
+    context.lineTo(bounds.x + bounds.width, y);
+    context.stroke();
+  }
+
+  context.lineWidth = 6;
+  context.strokeStyle = "rgba(255, 255, 255, 0.78)";
+  context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+  for (const wall of roomMap.walls) {
+    context.fillStyle = "#4a5265";
+    context.fillRect(wall.x, wall.y, wall.width, wall.height);
+    context.strokeStyle = "rgba(255, 255, 255, 0.18)";
+    context.lineWidth = 2;
+    context.strokeRect(wall.x, wall.y, wall.width, wall.height);
+  }
+
+  for (const door of roomMap.doors) {
+    context.fillStyle = "#8b6f45";
+    context.fillRect(door.x, door.y, door.width, door.height);
+    context.strokeStyle = "rgba(255, 209, 102, 0.42)";
+    context.lineWidth = 2;
+    context.strokeRect(door.x, door.y, door.width, door.height);
+  }
+
+  context.restore();
+}
+
 function drawArena() {
+  if (isRoomMode()) {
+    drawRoomMap();
+    return;
+  }
+
   context.clearRect(0, 0, 900, 900);
   context.save();
   context.translate(state.arena.x, state.arena.y);
@@ -1471,6 +1847,17 @@ duelModeButton.addEventListener("click", () => {
   }
 
   state.battleMode = "duel";
+  resetGame();
+});
+
+roomModeButton.addEventListener("click", () => {
+  unlockAudio();
+
+  if (state.battleMode === "room") {
+    return;
+  }
+
+  state.battleMode = "room";
   resetGame();
 });
 

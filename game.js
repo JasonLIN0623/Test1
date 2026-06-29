@@ -566,7 +566,11 @@ function shouldUnarmedEscape(ball, target, weaponPickup) {
   }
 
   const enemyDistance = distanceBetween(ball, target);
-  if (enemyDistance > 150) {
+  if (!target.weapon && enemyDistance <= 240) {
+    return true;
+  }
+
+  if (enemyDistance > 170) {
     return false;
   }
 
@@ -576,6 +580,29 @@ function shouldUnarmedEscape(ball, target, weaponPickup) {
 
   const weaponDistance = distanceBetween(ball, weaponPickup);
   return weaponDistance > enemyDistance || isPointVisibleToEnemies(weaponPickup, ball.team, 300);
+}
+
+function setRoomAction(ball, action, point = null, duration = 1) {
+  ball.roomAction = action;
+  ball.patrolPoint = point;
+  ball.awarenessTimer = duration;
+}
+
+function shouldRefreshRoomAction(ball, action, point = null, closeDistance = 34) {
+  if (ball.roomAction !== action || ball.awarenessTimer <= 0 || !ball.patrolPoint) {
+    return true;
+  }
+
+  return point ? distanceBetween(ball.patrolPoint, point) > closeDistance : distanceBetween(ball, ball.patrolPoint) < closeDistance;
+}
+
+function moveRoomAction(ball, action, point, speed, deltaSeconds, duration = 1) {
+  if (shouldRefreshRoomAction(ball, action, point)) {
+    setRoomAction(ball, action, point, duration);
+  }
+
+  moveRoomBallToward(ball, ball.patrolPoint, speed, deltaSeconds);
+  keepRoomSpacing(ball, deltaSeconds);
 }
 
 function chooseRoomCoverPoint(ball) {
@@ -1151,6 +1178,9 @@ function createBall(team, index, total) {
     targetId: null,
     awarenessTimer: randomBetween(0, 0.6),
     ambushMode: false,
+    roomAction: "patrol",
+    strafeSide: Math.random() < 0.5 ? -1 : 1,
+    strafeTimer: randomBetween(0.8, 1.8),
     patrolPoint: roomSpawn ? randomPointInRoomMap(34) : null,
     trail: [],
   };
@@ -1536,6 +1566,7 @@ function keepRoomSpacing(ball, deltaSeconds) {
 
 function applyRoomAwareness(ball, target, deltaSeconds) {
   ball.awarenessTimer = Math.max(0, ball.awarenessTimer - deltaSeconds);
+  ball.strafeTimer = Math.max(0, ball.strafeTimer - deltaSeconds);
   const outnumbered = isTeamOutnumbered(ball.team);
   ball.ambushMode = outnumbered;
 
@@ -1543,7 +1574,16 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
     const weaponPickup = findPriorityWeaponPickup(ball);
 
     if (shouldUnarmedEscape(ball, target, weaponPickup)) {
-      ball.patrolPoint = chooseRoomEscapePoint(ball);
+      if (
+        ball.roomAction !== "escape"
+        || ball.awarenessTimer <= 0
+        || !ball.patrolPoint
+        || isPointVisibleToEnemies(ball.patrolPoint, ball.team)
+        || distanceBetween(ball, ball.patrolPoint) < 34
+      ) {
+        setRoomAction(ball, "escape", chooseRoomEscapePoint(ball), randomBetween(1.1, 1.8));
+      }
+
       moveRoomBallToward(ball, ball.patrolPoint, 142, deltaSeconds);
       keepRoomSpacing(ball, deltaSeconds);
       return;
@@ -1551,14 +1591,15 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
 
     if (weaponPickup) {
       const approachPoint = getWeaponApproachPoint(ball, weaponPickup);
-      ball.patrolPoint = approachPoint;
-      moveRoomBallToward(ball, approachPoint, outnumbered ? 136 : 152, deltaSeconds);
-      keepRoomSpacing(ball, deltaSeconds);
+      moveRoomAction(ball, "arm", approachPoint, outnumbered ? 136 : 152, deltaSeconds, 0.9);
       return;
     }
 
     if (target) {
-      ball.patrolPoint = chooseRoomEscapePoint(ball);
+      if (ball.roomAction !== "escape" || ball.awarenessTimer <= 0 || !ball.patrolPoint) {
+        setRoomAction(ball, "escape", chooseRoomEscapePoint(ball), randomBetween(1.1, 1.8));
+      }
+
       moveRoomBallToward(ball, ball.patrolPoint, 128, deltaSeconds);
       keepRoomSpacing(ball, deltaSeconds);
       return;
@@ -1571,8 +1612,7 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
 
     if (!canAmbush) {
       if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 34 || ball.awarenessTimer <= 0) {
-        ball.patrolPoint = chooseRoomEscapePoint(ball);
-        ball.awarenessTimer = randomBetween(1.8, 3.2);
+        setRoomAction(ball, "hide", chooseRoomEscapePoint(ball), randomBetween(1.8, 3.2));
       }
 
       moveRoomBallToward(ball, ball.patrolPoint, 118, deltaSeconds);
@@ -1587,21 +1627,24 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
     const preferredDistance = weapon ? weapon.range * (outnumbered ? 0.72 : 0.56) : 96;
     const direction = normalizeVector(target.x - ball.x, target.y - ball.y);
     const strafeDirection = normalizeVector(-direction.y, direction.x);
-    const sideStep = Math.sin(performance.now() * 0.0015 + ball.radius) > 0 ? 1 : -1;
+    if (ball.strafeTimer <= 0) {
+      ball.strafeSide *= -1;
+      ball.strafeTimer = randomBetween(1.1, 2.1);
+    }
+
     const anchor = {
-      x: ball.x + direction.x * (distance > preferredDistance ? 70 : -58) + strafeDirection.x * sideStep * 42,
-      y: ball.y + direction.y * (distance > preferredDistance ? 70 : -58) + strafeDirection.y * sideStep * 42,
+      x: ball.x + direction.x * (distance > preferredDistance ? 70 : -58) + strafeDirection.x * ball.strafeSide * 32,
+      y: ball.y + direction.y * (distance > preferredDistance ? 70 : -58) + strafeDirection.y * ball.strafeSide * 32,
     };
 
-    ball.patrolPoint = null;
+    setRoomAction(ball, "engage", null, 0.4);
     moveRoomBallToward(ball, anchor, weapon ? 132 : 146, deltaSeconds);
     keepRoomSpacing(ball, deltaSeconds);
     return;
   }
 
   if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 44 || ball.awarenessTimer <= 0) {
-    ball.patrolPoint = chooseRoomPatrolPoint(ball);
-    ball.awarenessTimer = randomBetween(1.4, 2.7);
+    setRoomAction(ball, "patrol", chooseRoomPatrolPoint(ball), randomBetween(1.4, 2.7));
   }
 
   moveRoomBallToward(ball, ball.patrolPoint, 122, deltaSeconds);
@@ -1826,7 +1869,7 @@ function drawRoomMap() {
   context.fillStyle = "rgba(11, 15, 24, 0.92)";
   context.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
-  context.strokeStyle = "rgba(255, 255, 255, 0.16)";
+  context.strokeStyle = "rgba(255, 255, 255, 0.07)";
   context.lineWidth = 1;
   for (let x = bounds.x + 90; x < bounds.x + bounds.width; x += 90) {
     context.beginPath();
@@ -1842,13 +1885,13 @@ function drawRoomMap() {
   }
 
   context.lineWidth = 6;
-  context.strokeStyle = "rgba(255, 255, 255, 0.78)";
+  context.strokeStyle = "rgba(255, 255, 255, 0.58)";
   context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
   for (const wall of roomMap.walls) {
-    context.fillStyle = "#4a5265";
+    context.fillStyle = "#3f4758";
     context.fillRect(wall.x, wall.y, wall.width, wall.height);
-    context.strokeStyle = "rgba(255, 255, 255, 0.18)";
+    context.strokeStyle = "rgba(255, 255, 255, 0.12)";
     context.lineWidth = 2;
     context.strokeRect(wall.x, wall.y, wall.width, wall.height);
   }
@@ -1856,7 +1899,7 @@ function drawRoomMap() {
   for (const door of getRoomDoors()) {
     context.fillStyle = "#8b6f45";
     context.fillRect(door.x, door.y, door.width, door.height);
-    context.strokeStyle = "rgba(255, 209, 102, 0.42)";
+    context.strokeStyle = "rgba(255, 209, 102, 0.28)";
     context.lineWidth = 2;
     context.strokeRect(door.x, door.y, door.width, door.height);
   }
@@ -1899,6 +1942,10 @@ function drawArena() {
 }
 
 function drawTargetLines() {
+  if (isRoomMode()) {
+    return;
+  }
+
   context.save();
   context.lineWidth = 1;
 
@@ -2314,9 +2361,9 @@ function drawRoomCharacter(ball) {
   context.beginPath();
   context.arc(ball.x, ball.y, ball.radius + 7, 0, Math.PI * 2);
   context.strokeStyle = ball.team === "red"
-    ? "rgba(255, 59, 77, 0.44)"
-    : "rgba(47, 125, 255, 0.44)";
-  context.lineWidth = 2;
+    ? "rgba(255, 59, 77, 0.24)"
+    : "rgba(47, 125, 255, 0.24)";
+  context.lineWidth = 1.5;
   context.stroke();
 
   if (ball.weapon && ball.weapon.type === "shotgun") {
@@ -2334,16 +2381,18 @@ function drawRoomBalls() {
 
     drawRoomCharacter(ball);
 
-    const healthWidth = 38;
-    context.fillStyle = "rgba(0, 0, 0, 0.48)";
-    context.fillRect(ball.x - healthWidth / 2, ball.y - 30, healthWidth, 4);
-    context.fillStyle = ball.health > 34 ? "#3ddc97" : "#ffd166";
-    context.fillRect(
-      ball.x - healthWidth / 2,
-      ball.y - 30,
-      healthWidth * Math.max(0, ball.health / maxHealth),
-      4,
-    );
+    if (ball.health < maxHealth) {
+      const healthWidth = 38;
+      context.fillStyle = "rgba(0, 0, 0, 0.48)";
+      context.fillRect(ball.x - healthWidth / 2, ball.y - 30, healthWidth, 4);
+      context.fillStyle = ball.health > 34 ? "#3ddc97" : "#ffd166";
+      context.fillRect(
+        ball.x - healthWidth / 2,
+        ball.y - 30,
+        healthWidth * Math.max(0, ball.health / maxHealth),
+        4,
+      );
+    }
 
     if (ball.shieldCharges > 0) {
       context.beginPath();
@@ -2353,13 +2402,6 @@ function drawRoomBalls() {
       context.stroke();
     }
 
-    if (ball.ambushMode) {
-      context.beginPath();
-      context.arc(ball.x, ball.y, ball.radius + 14, 0, Math.PI * 2);
-      context.strokeStyle = "rgba(8, 10, 16, 0.88)";
-      context.lineWidth = 4;
-      context.stroke();
-    }
   }
 }
 
@@ -2465,6 +2507,10 @@ function drawBalls() {
 }
 
 function drawParticles() {
+  if (isRoomMode()) {
+    return;
+  }
+
   for (const particle of state.particles) {
     const alpha = Math.max(0, particle.life / particle.maxLife);
     context.beginPath();

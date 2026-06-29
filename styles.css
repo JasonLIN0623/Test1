@@ -7,6 +7,8 @@
   --muted: #9ca9bd;
   --red: #ff3b4d;
   --blue: #2f7dff;
+  --green-team: #3ddc97;
+  --gold-team: #ffd166;
   --gold: #ffd166;
   --green: #3ddc97;
 }
@@ -65,7 +67,7 @@ button:hover {
 }
 
 .hud {
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
 }
 
@@ -100,6 +102,14 @@ button:hover {
   color: var(--blue);
 }
 
+.green .team-row span {
+  color: var(--green-team);
+}
+
+.gold .team-row span {
+  color: var(--gold-team);
+}
+
 .bar {
   height: 12px;
   overflow: hidden;
@@ -123,7 +133,18 @@ button:hover {
   background: linear-gradient(90deg, #74adff, var(--blue));
 }
 
+#greenHealth {
+  background: linear-gradient(90deg, #72f0bd, var(--green-team));
+}
+
+#goldHealth {
+  background: linear-gradient(90deg, #ffe49b, var(--gold-team));
+}
+
 .round-panel {
+  order: -1;
+  grid-column: 1 / -1;
+  grid-row: 1;
   min-width: 190px;
   padding: 10px 14px;
   display: grid;
@@ -196,6 +217,14 @@ button:hover {
 
 .blue-view strong {
   color: var(--blue);
+}
+
+.green-view strong {
+  color: var(--green-team);
+}
+
+.gold-view strong {
+  color: var(--gold-team);
 }
 
 .view-panel canvas {

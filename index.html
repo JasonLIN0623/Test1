@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Red vs Blue Last Ball Standing</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260629-four-teams" />
   </head>
   <body>
     <main class="game-shell">
       <section class="hud" aria-label="戰況">
-        <div class="team-panel red">
+        <div id="redTeamPanel" class="team-panel red">
           <div class="team-row">
             <span>RED</span>
             <strong id="redCount">0</strong>
@@ -24,13 +24,33 @@
           <span id="timer">00:00</span>
         </div>
 
-        <div class="team-panel blue">
+        <div id="blueTeamPanel" class="team-panel blue">
           <div class="team-row">
             <span>BLUE</span>
             <strong id="blueCount">0</strong>
           </div>
           <div class="bar" aria-hidden="true">
             <span id="blueHealth"></span>
+          </div>
+        </div>
+
+        <div id="greenTeamPanel" class="team-panel green hidden">
+          <div class="team-row">
+            <span>GREEN</span>
+            <strong id="greenCount">0</strong>
+          </div>
+          <div class="bar" aria-hidden="true">
+            <span id="greenHealth"></span>
+          </div>
+        </div>
+
+        <div id="goldTeamPanel" class="team-panel gold hidden">
+          <div class="team-row">
+            <span>GOLD</span>
+            <strong id="goldCount">0</strong>
+          </div>
+          <div class="bar" aria-hidden="true">
+            <span id="goldHealth"></span>
           </div>
         </div>
       </section>
@@ -58,6 +78,20 @@
           </div>
           <canvas id="blueViewCanvas" width="360" height="240"></canvas>
         </article>
+        <article class="view-panel green-view">
+          <div class="view-title">
+            <span>GREEN POV</span>
+            <strong>綠方視角</strong>
+          </div>
+          <canvas id="greenViewCanvas" width="360" height="240"></canvas>
+        </article>
+        <article class="view-panel gold-view">
+          <div class="view-title">
+            <span>GOLD POV</span>
+            <strong>金方視角</strong>
+          </div>
+          <canvas id="goldViewCanvas" width="360" height="240"></canvas>
+        </article>
       </section>
 
       <section class="controls" aria-label="控制列">
@@ -81,6 +115,6 @@
       </section>
     </main>
 
-    <script src="game.js"></script>
+    <script src="game.js?v=20260629-four-teams"></script>
   </body>
 </html>

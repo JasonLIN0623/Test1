@@ -2,13 +2,35 @@ const canvas = document.querySelector("#gameCanvas");
 const context = canvas.getContext("2d");
 const redViewCanvas = document.querySelector("#redViewCanvas");
 const blueViewCanvas = document.querySelector("#blueViewCanvas");
+const greenViewCanvas = document.querySelector("#greenViewCanvas");
+const goldViewCanvas = document.querySelector("#goldViewCanvas");
 const redViewContext = redViewCanvas.getContext("2d");
 const blueViewContext = blueViewCanvas.getContext("2d");
+const greenViewContext = greenViewCanvas.getContext("2d");
+const goldViewContext = goldViewCanvas.getContext("2d");
 
-const redCountElement = document.querySelector("#redCount");
-const blueCountElement = document.querySelector("#blueCount");
-const redHealthElement = document.querySelector("#redHealth");
-const blueHealthElement = document.querySelector("#blueHealth");
+const teamStatusElements = {
+  red: {
+    panel: document.querySelector("#redTeamPanel"),
+    count: document.querySelector("#redCount"),
+    health: document.querySelector("#redHealth"),
+  },
+  blue: {
+    panel: document.querySelector("#blueTeamPanel"),
+    count: document.querySelector("#blueCount"),
+    health: document.querySelector("#blueHealth"),
+  },
+  green: {
+    panel: document.querySelector("#greenTeamPanel"),
+    count: document.querySelector("#greenCount"),
+    health: document.querySelector("#greenHealth"),
+  },
+  gold: {
+    panel: document.querySelector("#goldTeamPanel"),
+    count: document.querySelector("#goldCount"),
+    health: document.querySelector("#goldHealth"),
+  },
+};
 const roundStatusElement = document.querySelector("#roundStatus");
 const timerElement = document.querySelector("#timer");
 const winnerBanner = document.querySelector("#winnerBanner");
@@ -29,13 +51,30 @@ const teamConfig = {
     color: "#ff3b4d",
     glow: "rgba(255, 59, 77, 0.42)",
     label: "RED",
+    roomAssetTeam: "red",
   },
   blue: {
     color: "#2f7dff",
     glow: "rgba(47, 125, 255, 0.42)",
     label: "BLUE",
+    roomAssetTeam: "blue",
+  },
+  green: {
+    color: "#3ddc97",
+    glow: "rgba(61, 220, 151, 0.38)",
+    label: "GREEN",
+    roomAssetTeam: "blue",
+  },
+  gold: {
+    color: "#ffd166",
+    glow: "rgba(255, 209, 102, 0.38)",
+    label: "GOLD",
+    roomAssetTeam: "red",
   },
 };
+
+const baseTeams = ["red", "blue"];
+const roomTeams = ["red", "blue", "green", "gold"];
 
 const state = {
   balls: [],
@@ -67,7 +106,7 @@ const pickupLifetime = 10;
 const weaponReadyDelay = 1;
 const speedBoostDuration = 4;
 const speedBoostMultiplier = 1.45;
-const roomScale = 1.12;
+const roomScale = 1;
 const roomScaleCenter = { x: 450, y: 450 };
 
 function scaleRoomNumber(value, axis) {
@@ -95,67 +134,216 @@ function scaleRoomMap(map) {
     bounds: scaleRoomRect(map.bounds),
     walls: map.walls.map(scaleRoomRect),
     doors: map.doors.map(scaleRoomRect),
-    spawnZones: {
-      red: map.spawnZones.red.map(scaleRoomRect),
-      blue: map.spawnZones.blue.map(scaleRoomRect),
-    },
+    spawnZones: Object.fromEntries(
+      Object.entries(map.spawnZones).map(([team, zones]) => [team, zones.map(scaleRoomRect)]),
+    ),
   };
 }
 
 const roomMap = scaleRoomMap({
-  bounds: { x: 90, y: 105, width: 720, height: 690 },
+  bounds: { x: 30, y: 40, width: 840, height: 820 },
   walls: [
-    { x: 438, y: 105, width: 24, height: 260 },
-    { x: 438, y: 535, width: 24, height: 260 },
-    { x: 90, y: 322, width: 238, height: 22 },
-    { x: 572, y: 322, width: 238, height: 22 },
-    { x: 90, y: 556, width: 246, height: 22 },
-    { x: 564, y: 556, width: 246, height: 22 },
+    { x: 360, y: 40, width: 18, height: 96 },
+    { x: 360, y: 196, width: 18, height: 132 },
+    { x: 360, y: 388, width: 18, height: 128 },
+    { x: 360, y: 576, width: 18, height: 130 },
+    { x: 360, y: 766, width: 18, height: 94 },
+    { x: 522, y: 40, width: 18, height: 96 },
+    { x: 522, y: 196, width: 18, height: 132 },
+    { x: 522, y: 388, width: 18, height: 128 },
+    { x: 522, y: 576, width: 18, height: 130 },
+    { x: 522, y: 766, width: 18, height: 94 },
+    { x: 30, y: 225, width: 142, height: 18 },
+    { x: 236, y: 225, width: 142, height: 18 },
+    { x: 30, y: 420, width: 142, height: 18 },
+    { x: 236, y: 420, width: 142, height: 18 },
+    { x: 30, y: 620, width: 142, height: 18 },
+    { x: 236, y: 620, width: 142, height: 18 },
+    { x: 522, y: 225, width: 142, height: 18 },
+    { x: 728, y: 225, width: 142, height: 18 },
+    { x: 522, y: 420, width: 142, height: 18 },
+    { x: 728, y: 420, width: 142, height: 18 },
+    { x: 522, y: 620, width: 142, height: 18 },
+    { x: 728, y: 620, width: 142, height: 18 },
+    { x: 431, y: 262, width: 38, height: 126 },
+    { x: 431, y: 512, width: 38, height: 126 },
   ],
   doors: [
-    { x: 445, y: 398, width: 10, height: 72 },
-    { x: 300, y: 328, width: 56, height: 10 },
-    { x: 544, y: 562, width: 56, height: 10 },
+    { x: 365, y: 142, width: 8, height: 48 },
+    { x: 365, y: 334, width: 8, height: 48 },
+    { x: 365, y: 522, width: 8, height: 48 },
+    { x: 365, y: 712, width: 8, height: 48 },
+    { x: 527, y: 142, width: 8, height: 48 },
+    { x: 527, y: 334, width: 8, height: 48 },
+    { x: 527, y: 522, width: 8, height: 48 },
+    { x: 527, y: 712, width: 8, height: 48 },
+    { x: 180, y: 230, width: 48, height: 8 },
+    { x: 180, y: 425, width: 48, height: 8 },
+    { x: 180, y: 625, width: 48, height: 8 },
+    { x: 672, y: 230, width: 48, height: 8 },
+    { x: 672, y: 425, width: 48, height: 8 },
+    { x: 672, y: 625, width: 48, height: 8 },
   ],
   spawnZones: {
     red: [
-      { x: 130, y: 140, width: 210, height: 145 },
-      { x: 130, y: 610, width: 210, height: 140 },
+      { x: 62, y: 74, width: 238, height: 112 },
     ],
     blue: [
-      { x: 560, y: 140, width: 210, height: 145 },
-      { x: 560, y: 610, width: 210, height: 140 },
+      { x: 600, y: 74, width: 238, height: 112 },
+    ],
+    green: [
+      { x: 62, y: 674, width: 238, height: 112 },
+    ],
+    gold: [
+      { x: 600, y: 674, width: 238, height: 112 },
     ],
   },
 });
 
 const roomPickupZones = [
-  { x: 130, y: 140, width: 210, height: 145 },
-  { x: 560, y: 140, width: 210, height: 145 },
-  { x: 130, y: 370, width: 210, height: 140 },
-  { x: 560, y: 370, width: 210, height: 140 },
-  { x: 130, y: 610, width: 210, height: 140 },
-  { x: 560, y: 610, width: 210, height: 140 },
+  { x: 62, y: 74, width: 238, height: 112 },
+  { x: 62, y: 270, width: 238, height: 106 },
+  { x: 62, y: 468, width: 238, height: 112 },
+  { x: 62, y: 674, width: 238, height: 112 },
+  { x: 600, y: 74, width: 238, height: 112 },
+  { x: 600, y: 270, width: 238, height: 106 },
+  { x: 600, y: 468, width: 238, height: 112 },
+  { x: 600, y: 674, width: 238, height: 112 },
+  { x: 396, y: 78, width: 108, height: 116 },
+  { x: 396, y: 672, width: 108, height: 116 },
 ].map(scaleRoomRect);
 
 const roomBreachRoutes = {
   red: [
-    { x: 286, y: 333 },
-    { x: 395, y: 430 },
-    { x: 515, y: 565 },
-    { x: 650, y: 685 },
-    { x: 650, y: 215 },
+    [
+      { x: 324, y: 166 },
+      { x: 418, y: 166 },
+      { x: 406, y: 234 },
+      { x: 406, y: 450 },
+      { x: 494, y: 450 },
+      { x: 562, y: 358 },
+      { x: 720, y: 348 },
+      { x: 716, y: 548 },
+      { x: 562, y: 548 },
+    ],
+    [
+      { x: 324, y: 546 },
+      { x: 418, y: 546 },
+      { x: 406, y: 464 },
+      { x: 406, y: 666 },
+      { x: 494, y: 666 },
+      { x: 562, y: 736 },
+      { x: 720, y: 736 },
+      { x: 716, y: 156 },
+    ],
+    [
+      { x: 324, y: 736 },
+      { x: 418, y: 736 },
+      { x: 406, y: 636 },
+      { x: 406, y: 450 },
+      { x: 494, y: 450 },
+      { x: 562, y: 156 },
+      { x: 720, y: 156 },
+      { x: 716, y: 348 },
+    ],
   ],
   blue: [
-    { x: 614, y: 567 },
-    { x: 505, y: 430 },
-    { x: 385, y: 333 },
-    { x: 250, y: 215 },
-    { x: 250, y: 685 },
+    [
+      { x: 576, y: 166 },
+      { x: 482, y: 166 },
+      { x: 494, y: 234 },
+      { x: 494, y: 450 },
+      { x: 406, y: 450 },
+      { x: 338, y: 358 },
+      { x: 180, y: 348 },
+      { x: 184, y: 548 },
+      { x: 338, y: 548 },
+    ],
+    [
+      { x: 576, y: 546 },
+      { x: 482, y: 546 },
+      { x: 494, y: 464 },
+      { x: 494, y: 666 },
+      { x: 406, y: 666 },
+      { x: 338, y: 736 },
+      { x: 180, y: 736 },
+      { x: 184, y: 156 },
+    ],
+    [
+      { x: 576, y: 736 },
+      { x: 482, y: 736 },
+      { x: 494, y: 636 },
+      { x: 494, y: 450 },
+      { x: 406, y: 450 },
+      { x: 338, y: 156 },
+      { x: 180, y: 156 },
+      { x: 184, y: 348 },
+    ],
+  ],
+  green: [
+    [
+      { x: 324, y: 736 },
+      { x: 418, y: 736 },
+      { x: 406, y: 666 },
+      { x: 406, y: 450 },
+      { x: 494, y: 450 },
+      { x: 562, y: 548 },
+      { x: 720, y: 548 },
+      { x: 716, y: 348 },
+    ],
+    [
+      { x: 324, y: 546 },
+      { x: 418, y: 546 },
+      { x: 406, y: 464 },
+      { x: 406, y: 234 },
+      { x: 494, y: 234 },
+      { x: 562, y: 156 },
+      { x: 720, y: 156 },
+    ],
+    [
+      { x: 324, y: 736 },
+      { x: 180, y: 736 },
+      { x: 184, y: 548 },
+      { x: 338, y: 548 },
+      { x: 450, y: 666 },
+      { x: 562, y: 736 },
+      { x: 720, y: 736 },
+    ],
+  ],
+  gold: [
+    [
+      { x: 576, y: 736 },
+      { x: 482, y: 736 },
+      { x: 494, y: 666 },
+      { x: 494, y: 450 },
+      { x: 406, y: 450 },
+      { x: 338, y: 548 },
+      { x: 180, y: 548 },
+      { x: 184, y: 348 },
+    ],
+    [
+      { x: 576, y: 546 },
+      { x: 482, y: 546 },
+      { x: 494, y: 464 },
+      { x: 494, y: 234 },
+      { x: 406, y: 234 },
+      { x: 338, y: 156 },
+      { x: 180, y: 156 },
+    ],
+    [
+      { x: 576, y: 736 },
+      { x: 720, y: 736 },
+      { x: 716, y: 548 },
+      { x: 562, y: 548 },
+      { x: 450, y: 666 },
+      { x: 338, y: 736 },
+      { x: 180, y: 736 },
+    ],
   ],
 };
-roomBreachRoutes.red = roomBreachRoutes.red.map(scaleRoomPoint);
-roomBreachRoutes.blue = roomBreachRoutes.blue.map(scaleRoomPoint);
+for (const [team, routes] of Object.entries(roomBreachRoutes)) {
+  roomBreachRoutes[team] = routes.map((route) => route.map(scaleRoomPoint));
+}
 
 const audioState = {
   context: null,
@@ -199,6 +387,18 @@ const roomAssetFiles = {
       sniper: "assets/images/room/characters/blue-sniper.png",
       machineGun: "assets/images/room/characters/blue-machine.png",
     },
+    green: {
+      stand: "assets/images/room/characters/blue-stand.png",
+      gun: "assets/images/room/characters/blue-gun.png",
+      sniper: "assets/images/room/characters/blue-sniper.png",
+      machineGun: "assets/images/room/characters/blue-machine.png",
+    },
+    gold: {
+      stand: "assets/images/room/characters/red-stand.png",
+      gun: "assets/images/room/characters/red-gun.png",
+      sniper: "assets/images/room/characters/red-sniper.png",
+      machineGun: "assets/images/room/characters/red-machine.png",
+    },
   },
 };
 
@@ -207,6 +407,8 @@ const roomAssets = {
   characters: {
     red: {},
     blue: {},
+    green: {},
+    gold: {},
   },
 };
 
@@ -325,6 +527,14 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function colorWithAlpha(hexColor, alpha) {
+  const value = hexColor.replace("#", "");
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 function loadImageAsset(src) {
   const image = new Image();
   image.onload = () => drawGame();
@@ -348,9 +558,15 @@ function isRoomMode() {
   return state.battleMode === "room";
 }
 
+function getActiveTeams() {
+  return isRoomMode() ? roomTeams : baseTeams;
+}
+
 function createRoomDoors() {
   return roomMap.doors.map((door, index) => {
     const orientation = door.height > door.width ? "vertical" : "horizontal";
+    const panelLength = orientation === "vertical" ? door.height : door.width;
+    const panelThickness = orientation === "vertical" ? door.width : door.height;
     const roomDoor = {
       ...door,
       id: `door-${index}`,
@@ -358,6 +574,8 @@ function createRoomDoors() {
       closedY: door.y,
       closedWidth: door.width,
       closedHeight: door.height,
+      panelLength,
+      panelThickness,
       orientation,
       openAmount: 0,
       openVelocity: 0,
@@ -369,36 +587,70 @@ function createRoomDoors() {
   });
 }
 
-function lerp(start, end, amount) {
-  return start + (end - start) * amount;
+function getRoomDoorGeometry(door) {
+  const amount = clamp(door.openAmount, 0, 1);
+  const direction = door.openDirection || 1;
+  const length = door.panelLength ?? Math.max(door.closedWidth, door.closedHeight);
+  const thickness = door.panelThickness ?? Math.min(door.closedWidth, door.closedHeight);
+  const halfThickness = thickness / 2;
+
+  if (door.orientation === "vertical") {
+    const hinge = {
+      x: door.closedX + door.closedWidth / 2,
+      y: door.closedY,
+    };
+    const angle = Math.PI / 2 - direction * (Math.PI / 2) * amount;
+    return { hinge, angle, length, thickness, halfThickness };
+  }
+
+  const hinge = {
+    x: door.closedX,
+    y: door.closedY + door.closedHeight / 2,
+  };
+  const angle = direction * (Math.PI / 2) * amount;
+  return { hinge, angle, length, thickness, halfThickness };
+}
+
+function getDoorPanelCorners(door) {
+  const { hinge, angle, length, halfThickness } = getRoomDoorGeometry(door);
+  const forward = { x: Math.cos(angle), y: Math.sin(angle) };
+  const side = { x: -forward.y, y: forward.x };
+  const end = {
+    x: hinge.x + forward.x * length,
+    y: hinge.y + forward.y * length,
+  };
+
+  return [
+    { x: hinge.x + side.x * halfThickness, y: hinge.y + side.y * halfThickness },
+    { x: end.x + side.x * halfThickness, y: end.y + side.y * halfThickness },
+    { x: end.x - side.x * halfThickness, y: end.y - side.y * halfThickness },
+    { x: hinge.x - side.x * halfThickness, y: hinge.y - side.y * halfThickness },
+  ];
+}
+
+function getDoorPanelBounds(door) {
+  const corners = getDoorPanelCorners(door);
+  const xs = corners.map((corner) => corner.x);
+  const ys = corners.map((corner) => corner.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
 }
 
 function updateRoomDoorRect(door) {
-  const amount = clamp(door.openAmount, 0, 1);
-  const direction = door.openDirection || 1;
-
-  if (door.orientation === "vertical") {
-    const openX = direction > 0
-      ? door.closedX
-      : door.closedX - door.closedHeight + door.closedWidth;
-    const openY = door.closedY + (door.closedHeight - door.closedWidth) / 2;
-
-    door.x = lerp(door.closedX, openX, amount);
-    door.y = lerp(door.closedY, openY, amount);
-    door.width = lerp(door.closedWidth, door.closedHeight, amount);
-    door.height = lerp(door.closedHeight, door.closedWidth, amount);
-    return;
-  }
-
-  const openX = door.closedX + (door.closedWidth - door.closedHeight) / 2;
-  const openY = direction > 0
-    ? door.closedY
-    : door.closedY - door.closedWidth + door.closedHeight;
-
-  door.x = lerp(door.closedX, openX, amount);
-  door.y = lerp(door.closedY, openY, amount);
-  door.width = lerp(door.closedWidth, door.closedHeight, amount);
-  door.height = lerp(door.closedHeight, door.closedWidth, amount);
+  const bounds = getDoorPanelBounds(door);
+  door.x = bounds.x;
+  door.y = bounds.y;
+  door.width = bounds.width;
+  door.height = bounds.height;
 }
 
 function getRoomDoors() {
@@ -460,8 +712,13 @@ function randomPointInRect(rect, padding = 24) {
   };
 }
 
-function randomPointInRoomMap(padding = 28, team = null) {
-  const zones = team ? roomMap.spawnZones[team] : null;
+function getRoomSpawnZone(team, squadIndex = 0) {
+  const zones = roomMap.spawnZones[team] ?? [roomMap.bounds];
+  return zones[squadIndex % zones.length];
+}
+
+function randomPointInRoomMap(padding = 28, team = null, squadIndex = 0) {
+  const zones = team ? [getRoomSpawnZone(team, squadIndex)] : null;
 
   for (let attempt = 0; attempt < 80; attempt += 1) {
     const sourceRects = zones ?? [roomMap.bounds];
@@ -507,13 +764,10 @@ function getRoomPatrolPoints() {
   });
 
   const roomCenters = [
-    { x: 220, y: 215 },
-    { x: 680, y: 215 },
-    { x: 220, y: 455 },
-    { x: 680, y: 455 },
-    { x: 220, y: 685 },
-    { x: 680, y: 685 },
+    ...roomPickupZones.map(getRectCenter),
+    { x: roomMap.bounds.x + roomMap.bounds.width / 2, y: roomMap.bounds.y + 126 },
     getRectCenter(roomMap.bounds),
+    { x: roomMap.bounds.x + roomMap.bounds.width / 2, y: roomMap.bounds.y + roomMap.bounds.height - 126 },
   ];
 
   return [...doorPoints, ...roomCenters].filter((point) => isPointInRoomMap(point, 28));
@@ -659,24 +913,34 @@ function moveRoomAction(ball, action, point, speed, deltaSeconds, duration = 1) 
   keepRoomSpacing(ball, deltaSeconds);
 }
 
+function getRoomRoute(ball) {
+  const routes = roomBreachRoutes[ball.team] ?? [];
+  return routes[ball.roomRouteIndex % routes.length] ?? routes[0] ?? [];
+}
+
 function getRoomSquadEntryPoint(ball) {
-  const route = roomBreachRoutes[ball.team];
+  const route = getRoomRoute(ball);
+  if (route.length === 0) {
+    return getRectCenter(roomMap.bounds);
+  }
+
   const waypointIndex = clamp(ball.roomWaypointIndex ?? 0, 0, route.length - 1);
   const objective = route[waypointIndex];
   const nextObjective = route[Math.min(waypointIndex + 1, route.length - 1)] ?? objective;
   const forward = normalizeVector(nextObjective.x - objective.x, nextObjective.y - objective.y);
   const side = normalizeVector(-forward.y, forward.x);
-  const lane = (ball.squadIndex % 4) - 1.5;
-  const file = Math.floor(ball.squadIndex / 4);
+  const routeMateIndex = Math.floor(ball.squadIndex / Math.max(roomBreachRoutes[ball.team]?.length ?? 1, 1));
+  const lane = (routeMateIndex % 3) - 1;
+  const file = Math.floor(routeMateIndex / 3);
 
   return {
-    x: objective.x + side.x * lane * 24 - forward.x * file * 30,
-    y: objective.y + side.y * lane * 24 - forward.y * file * 30,
+    x: objective.x + side.x * lane * 22 - forward.x * file * 28,
+    y: objective.y + side.y * lane * 22 - forward.y * file * 28,
   };
 }
 
 function updateRoomSquadWaypoint(ball) {
-  const route = roomBreachRoutes[ball.team];
+  const route = getRoomRoute(ball);
 
   if (!route || ball.roomWaypointIndex >= route.length - 1) {
     return;
@@ -689,14 +953,24 @@ function updateRoomSquadWaypoint(ball) {
   }
 }
 
+function getRoomHomeBias(team, point) {
+  const spawnCenter = getRectCenter(getRoomSpawnZone(team, 0));
+  const horizontalBias = spawnCenter.x < roomMap.bounds.x + roomMap.bounds.width / 2
+    ? clamp((roomMap.bounds.x + roomMap.bounds.width - point.x) / roomMap.bounds.width, 0, 1)
+    : clamp((point.x - roomMap.bounds.x) / roomMap.bounds.width, 0, 1);
+  const verticalBias = spawnCenter.y < roomMap.bounds.y + roomMap.bounds.height / 2
+    ? clamp((roomMap.bounds.y + roomMap.bounds.height - point.y) / roomMap.bounds.height, 0, 1)
+    : clamp((point.y - roomMap.bounds.y) / roomMap.bounds.height, 0, 1);
+
+  return (horizontalBias + verticalBias) / 2;
+}
+
 function chooseRoomCoverPoint(ball) {
   const points = getRoomCoverPoints();
   const scoredPoints = points.map((point) => {
     const visibleEnemies = getVisibleEnemiesFromPoint(point, ball.team).length;
     const distance = distanceBetween(ball, point);
-    const homeBias = ball.team === "red"
-      ? clamp((roomMap.bounds.x + roomMap.bounds.width - point.x) / roomMap.bounds.width, 0, 1)
-      : clamp((point.x - roomMap.bounds.x) / roomMap.bounds.width, 0, 1);
+    const homeBias = getRoomHomeBias(ball.team, point);
     const score = visibleEnemies * 220 + distance * 0.45 - homeBias * 55 + Math.random() * 24;
 
     return { point, score };
@@ -952,22 +1226,24 @@ function getPickupPool() {
 }
 
 function getAliveTeamCounts() {
+  const teams = getActiveTeams();
   return state.balls.reduce((counts, ball) => {
     if (ball.alive) {
       counts[ball.team] += 1;
     }
 
     return counts;
-  }, { red: 0, blue: 0 });
-}
-
-function getEnemyTeam(team) {
-  return team === "red" ? "blue" : "red";
+  }, Object.fromEntries(teams.map((team) => [team, 0])));
 }
 
 function isTeamOutnumbered(team) {
   const counts = getAliveTeamCounts();
-  return counts[getEnemyTeam(team)] - counts[team] >= 2;
+  const strongestEnemyCount = Math.max(
+    ...getActiveTeams()
+      .filter((candidateTeam) => candidateTeam !== team)
+      .map((candidateTeam) => counts[candidateTeam] ?? 0),
+  );
+  return strongestEnemyCount - (counts[team] ?? 0) >= 2;
 }
 
 function teamHasWeapon(team) {
@@ -975,7 +1251,7 @@ function teamHasWeapon(team) {
 }
 
 function bothRoomTeamsHaveWeapons() {
-  return teamHasWeapon("red") && teamHasWeapon("blue");
+  return getActiveTeams().every((team) => teamHasWeapon(team));
 }
 
 function getRoomStartingWeapon(index) {
@@ -1211,6 +1487,13 @@ function getModeLabel() {
   return "團體戰";
 }
 
+function updateRoomTeamPanels() {
+  const activeTeams = getActiveTeams();
+  for (const [team, elements] of Object.entries(teamStatusElements)) {
+    elements.panel.classList.toggle("hidden", !activeTeams.includes(team));
+  }
+}
+
 function syncModeControls() {
   const isDuel = state.battleMode === "duel";
   const isRoom = isRoomMode();
@@ -1219,6 +1502,7 @@ function syncModeControls() {
   roomModeButton.classList.toggle("active", isRoom);
   ballCountInput.disabled = isDuel;
   ballCountValue.textContent = String(getBallsPerTeam());
+  updateRoomTeamPanels();
 }
 
 function resizeCanvas() {
@@ -1236,14 +1520,14 @@ function resizeCanvas() {
 }
 
 function createBall(team, index, total) {
-  const roomSpawn = isRoomMode() ? randomPointInRoomMap(34, team) : null;
+  const roomSpawn = isRoomMode() ? randomPointInRoomMap(34, team, index) : null;
   const startingWeaponType = isRoomMode() ? getRoomStartingWeapon(index) : null;
   const angle = (Math.PI * 2 * index) / total + (team === "red" ? 0 : Math.PI);
   const spread = randomBetween(90, 250);
   const x = roomSpawn?.x ?? state.arena.x + Math.cos(angle) * spread;
   const y = roomSpawn?.y ?? state.arena.y + Math.sin(angle) * spread;
   const direction = roomSpawn
-    ? normalizeVector(team === "red" ? 1 : -1, randomBetween(-0.35, 0.35))
+    ? normalizeVector(roomMap.bounds.x + roomMap.bounds.width / 2 - x, roomMap.bounds.y + roomMap.bounds.height / 2 - y)
     : normalizeVector(
       state.arena.x - x + randomBetween(-140, 140),
       state.arena.y - y + randomBetween(-140, 140),
@@ -1272,7 +1556,9 @@ function createBall(team, index, total) {
     ambushMode: false,
     roomAction: "patrol",
     squadIndex: index,
+    roomRouteIndex: isRoomMode() ? index % (roomBreachRoutes[team]?.length ?? 1) : 0,
     roomWaypointIndex: 0,
+    stuckTimer: 0,
     strafeSide: Math.random() < 0.5 ? -1 : 1,
     strafeTimer: randomBetween(0.8, 1.8),
     patrolPoint: roomSpawn ? randomPointInRoomMap(34) : null,
@@ -1294,9 +1580,10 @@ function resetGame() {
   state.winner = null;
   state.nextPickupIn = 1.2;
 
-  for (let index = 0; index < ballCount; index += 1) {
-    state.balls.push(createBall("red", index, ballCount));
-    state.balls.push(createBall("blue", index, ballCount));
+  for (const team of getActiveTeams()) {
+    for (let index = 0; index < ballCount; index += 1) {
+      state.balls.push(createBall(team, index, ballCount));
+    }
   }
 
   if (isRoomMode() && !bothRoomTeamsHaveWeapons()) {
@@ -1532,16 +1819,15 @@ function toggleGame() {
 }
 
 function updateHud() {
-  const redBalls = state.balls.filter((ball) => ball.alive && ball.team === "red");
-  const blueBalls = state.balls.filter((ball) => ball.alive && ball.team === "blue");
-  const redHealth = redBalls.reduce((total, ball) => total + ball.health, 0);
-  const blueHealth = blueBalls.reduce((total, ball) => total + ball.health, 0);
   const maxTeamHealth = getBallsPerTeam() * maxHealth;
 
-  redCountElement.textContent = redBalls.length;
-  blueCountElement.textContent = blueBalls.length;
-  redHealthElement.style.width = `${Math.max(0, (redHealth / maxTeamHealth) * 100)}%`;
-  blueHealthElement.style.width = `${Math.max(0, (blueHealth / maxTeamHealth) * 100)}%`;
+  for (const team of getActiveTeams()) {
+    const teamBalls = state.balls.filter((ball) => ball.alive && ball.team === team);
+    const teamHealth = teamBalls.reduce((total, ball) => total + ball.health, 0);
+    const elements = teamStatusElements[team];
+    elements.count.textContent = teamBalls.length;
+    elements.health.style.width = `${Math.max(0, (teamHealth / maxTeamHealth) * 100)}%`;
+  }
 
   if (state.startedAt) {
     const elapsedMs = state.running
@@ -1584,7 +1870,7 @@ function isCircleClearInRoom(circle) {
     return false;
   }
 
-  return !getRoomObstacles().some((obstacle) => circleOverlapsRect(circle, obstacle));
+  return !roomMap.walls.some((wall) => circleOverlapsRect(circle, wall));
 }
 
 function rotateVector(vector, radians) {
@@ -1618,6 +1904,33 @@ function getRoomSteeringDirection(ball, desiredDirection) {
   };
 }
 
+function chooseRoomMovementPoint(ball, destination) {
+  if (hasLineOfSight(ball, destination)) {
+    return destination;
+  }
+
+  const currentDistance = distanceBetween(ball, destination);
+  const candidates = getRoomPatrolPoints()
+    .filter((point) => {
+      return distanceBetween(ball, point) > 36
+        && distanceBetween(point, destination) < currentDistance + 90
+        && hasLineOfSight(ball, point);
+    })
+    .map((point) => {
+      const enemySightPenalty = isPointVisibleToEnemies(point, ball.team, 340) ? 60 : 0;
+      return {
+        point,
+        score: distanceBetween(point, destination)
+          + distanceBetween(ball, point) * 0.38
+          + enemySightPenalty
+          + Math.random() * 14,
+      };
+    })
+    .sort((a, b) => a.score - b.score);
+
+  return candidates[0]?.point ?? destination;
+}
+
 function moveRoomBallToward(ball, point, speed, deltaSeconds) {
   const distance = distanceBetween(ball, point);
 
@@ -1627,9 +1940,13 @@ function moveRoomBallToward(ball, point, speed, deltaSeconds) {
     return;
   }
 
-  const desiredDirection = normalizeVector(point.x - ball.x, point.y - ball.y);
+  const movementPoint = chooseRoomMovementPoint(ball, point);
+  const movementDistance = distanceBetween(ball, movementPoint);
+  const desiredDirection = normalizeVector(movementPoint.x - ball.x, movementPoint.y - ball.y);
   const steeringDirection = getRoomSteeringDirection(ball, desiredDirection);
-  const arrivalSpeed = distance < 70 ? speed * clamp(distance / 70, 0.28, 1) : speed;
+  const arrivalSpeed = Math.min(distance, movementDistance) < 70
+    ? speed * clamp(Math.min(distance, movementDistance) / 70, 0.28, 1)
+    : speed;
   const desiredVelocityX = steeringDirection.x * arrivalSpeed;
   const desiredVelocityY = steeringDirection.y * arrivalSpeed;
   const blend = Math.min(1, deltaSeconds * 4.4);
@@ -1781,6 +2098,7 @@ function moveBalls(deltaSeconds) {
       continue;
     }
 
+    const previousPosition = { x: ball.x, y: ball.y };
     ball.hitTimer = Math.max(0, ball.hitTimer - deltaSeconds);
     ball.x += ball.vx * deltaSeconds;
     ball.y += ball.vy * deltaSeconds;
@@ -1792,6 +2110,23 @@ function moveBalls(deltaSeconds) {
 
     if (isRoomMode()) {
       resolveBallAgainstRoomMap(ball);
+      const targetDistance = ball.patrolPoint ? distanceBetween(ball, ball.patrolPoint) : 0;
+      const movedDistance = distanceBetween(previousPosition, ball);
+
+      if (targetDistance > 48 && movedDistance < 1.4) {
+        ball.stuckTimer = (ball.stuckTimer ?? 0) + deltaSeconds;
+      } else {
+        ball.stuckTimer = Math.max(0, (ball.stuckTimer ?? 0) - deltaSeconds * 1.8);
+      }
+
+      if (ball.stuckTimer > 0.78) {
+        const turn = Math.random() < 0.5 ? Math.PI * 0.5 : -Math.PI * 0.5;
+        const escapeDirection = rotateVector(normalizeVector(ball.vx, ball.vy), turn);
+        ball.vx = escapeDirection.x * 92;
+        ball.vy = escapeDirection.y * 92;
+        ball.awarenessTimer = 0;
+        ball.stuckTimer = 0;
+      }
       continue;
     }
 
@@ -1934,63 +2269,50 @@ function updateParticles(deltaSeconds) {
 }
 
 function checkWinner() {
-  const redAlive = state.balls.some((ball) => ball.alive && ball.team === "red");
-  const blueAlive = state.balls.some((ball) => ball.alive && ball.team === "blue");
+  const aliveTeams = getActiveTeams().filter((team) => {
+    return state.balls.some((ball) => ball.alive && ball.team === team);
+  });
 
-  if (redAlive && blueAlive) {
+  if (aliveTeams.length > 1) {
     return;
   }
 
   state.running = false;
   state.elapsedBeforePause = performance.now() - state.startedAt;
-  state.winner = redAlive ? "red" : "blue";
+  state.winner = aliveTeams[0] ?? null;
   startButton.textContent = "開始";
-  roundStatusElement.textContent = `${teamConfig[state.winner].label} WINS`;
-  winnerText.textContent = `${teamConfig[state.winner].label} WINS`;
+  const winnerLabel = state.winner ? teamConfig[state.winner].label : "NO TEAM";
+  roundStatusElement.textContent = `${winnerLabel} WINS`;
+  winnerText.textContent = `${winnerLabel} WINS`;
   winnerBanner.classList.remove("hidden");
   playSound("win");
 }
 
 function drawRoomDoor(door) {
-  const orientation = door.orientation ?? (door.height > door.width ? "vertical" : "horizontal");
-  const closedX = door.closedX ?? door.x;
-  const closedY = door.closedY ?? door.y;
-  const closedWidth = door.closedWidth ?? door.width;
-  const closedHeight = door.closedHeight ?? door.height;
-  const openDirection = door.openDirection || 1;
-  const closedCenter = {
-    x: closedX + closedWidth / 2,
-    y: closedY + closedHeight / 2,
-  };
-  const hinge = orientation === "vertical"
-    ? {
-      x: openDirection > 0 ? closedX : closedX + closedWidth,
-      y: closedCenter.y,
-    }
-    : {
-      x: closedCenter.x,
-      y: openDirection > 0 ? closedY : closedY + closedHeight,
-    };
-  const swingRadius = Math.max(closedWidth, closedHeight);
-  const baseAngle = orientation === "vertical" ? -Math.PI / 2 : 0;
-  const endAngle = orientation === "vertical"
-    ? baseAngle + openDirection * (door.openAmount ?? 0) * Math.PI / 2
-    : baseAngle - openDirection * (door.openAmount ?? 0) * Math.PI / 2;
+  const { hinge, angle, length } = getRoomDoorGeometry(door);
+  const corners = getDoorPanelCorners(door);
+  const closedAngle = door.orientation === "vertical" ? Math.PI / 2 : 0;
 
   context.save();
   context.strokeStyle = "rgba(255, 209, 102, 0.16)";
   context.lineWidth = 1.5;
   context.setLineDash([5, 7]);
   context.beginPath();
-  context.arc(hinge.x, hinge.y, swingRadius, baseAngle, endAngle, openDirection < 0);
+  context.arc(hinge.x, hinge.y, length, closedAngle, angle, angle < closedAngle);
   context.stroke();
   context.setLineDash([]);
 
+  context.beginPath();
+  context.moveTo(corners[0].x, corners[0].y);
+  for (let index = 1; index < corners.length; index += 1) {
+    context.lineTo(corners[index].x, corners[index].y);
+  }
+  context.closePath();
   context.fillStyle = "#9a7647";
-  context.fillRect(door.x, door.y, door.width, door.height);
+  context.fill();
   context.strokeStyle = "rgba(255, 223, 145, 0.42)";
   context.lineWidth = 2;
-  context.strokeRect(door.x, door.y, door.width, door.height);
+  context.stroke();
 
   context.beginPath();
   context.arc(hinge.x, hinge.y, 4, 0, Math.PI * 2);
@@ -2096,9 +2418,7 @@ function drawTargetLines() {
     context.beginPath();
     context.moveTo(ball.x, ball.y);
     context.lineTo(target.x, target.y);
-    context.strokeStyle = ball.team === "red"
-      ? "rgba(255, 59, 77, 0.16)"
-      : "rgba(47, 125, 255, 0.16)";
+    context.strokeStyle = colorWithAlpha(teamConfig[ball.team].color, 0.16);
     context.stroke();
   }
 
@@ -2463,7 +2783,10 @@ function getRoomCharacterVariant(ball) {
 
 function drawRoomCharacter(ball) {
   const variant = getRoomCharacterVariant(ball);
-  const image = roomAssets.characters[ball.team][variant] ?? roomAssets.characters[ball.team].stand;
+  const assetTeam = teamConfig[ball.team].roomAssetTeam ?? ball.team;
+  const image = roomAssets.characters[ball.team]?.[variant]
+    ?? roomAssets.characters[assetTeam]?.[variant]
+    ?? roomAssets.characters[assetTeam]?.stand;
   const aimAngle = getWeaponAimAngle(ball);
   const config = teamConfig[ball.team];
 
@@ -2490,13 +2813,18 @@ function drawRoomCharacter(ball) {
   context.fill();
 
   context.drawImage(image, -width / 2, -height / 2, width, height);
+
+  if (ball.team === "green" || ball.team === "gold") {
+    context.globalCompositeOperation = "source-atop";
+    context.fillStyle = colorWithAlpha(config.color, 0.24);
+    context.fillRect(-width / 2, -height / 2, width, height);
+    context.globalCompositeOperation = "source-over";
+  }
   context.restore();
 
   context.beginPath();
   context.arc(ball.x, ball.y, ball.radius + 7, 0, Math.PI * 2);
-  context.strokeStyle = ball.team === "red"
-    ? "rgba(255, 59, 77, 0.24)"
-    : "rgba(47, 125, 255, 0.24)";
+  context.strokeStyle = colorWithAlpha(config.color, 0.34);
   context.lineWidth = 1.5;
   context.stroke();
 
@@ -2557,9 +2885,7 @@ function drawBalls() {
       const alpha = index / ball.trail.length;
       context.beginPath();
       context.arc(point.x, point.y, ball.radius * alpha * 0.8, 0, Math.PI * 2);
-      context.fillStyle = ball.team === "red"
-        ? `rgba(255, 59, 77, ${alpha * 0.18})`
-        : `rgba(47, 125, 255, ${alpha * 0.18})`;
+      context.fillStyle = colorWithAlpha(config.color, alpha * 0.18);
       context.fill();
     }
 
@@ -2753,6 +3079,8 @@ function drawTeamView(team, viewCanvas, viewContext) {
 function drawTeamViews() {
   drawTeamView("red", redViewCanvas, redViewContext);
   drawTeamView("blue", blueViewCanvas, blueViewContext);
+  drawTeamView("green", greenViewCanvas, greenViewContext);
+  drawTeamView("gold", goldViewCanvas, goldViewContext);
 }
 
 function drawGame() {

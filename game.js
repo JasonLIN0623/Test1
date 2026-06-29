@@ -163,21 +163,21 @@ function scaleRoomMap(map) {
 const roomMap = scaleRoomMap({
   bounds: { x: 100, y: 80, width: 700, height: 760 },
   walls: [
-    { x: 145, y: 80, width: 10, height: 140, color: "#101010" },
-    { x: 100, y: 210, width: 122, height: 10, color: "#101010" },
-    { x: 650, y: 80, width: 10, height: 140, color: "#101010" },
-    { x: 650, y: 210, width: 150, height: 10, color: "#101010" },
-    { x: 145, y: 700, width: 10, height: 140, color: "#101010" },
-    { x: 100, y: 690, width: 250, height: 10, color: "#101010" },
-    { x: 350, y: 690, width: 10, height: 150, color: "#101010" },
-    { x: 650, y: 700, width: 10, height: 140, color: "#101010" },
-    { x: 560, y: 690, width: 240, height: 10, color: "#101010" },
-    { x: 560, y: 690, width: 10, height: 150, color: "#101010" },
+    { x: 145, y: 80, width: 10, height: 106, color: "#101010" },
+    { x: 100, y: 210, width: 82, height: 10, color: "#101010" },
+    { x: 650, y: 80, width: 10, height: 70, color: "#101010" },
+    { x: 742, y: 210, width: 58, height: 10, color: "#101010" },
+    { x: 145, y: 734, width: 10, height: 106, color: "#101010" },
+    { x: 100, y: 690, width: 210, height: 10, color: "#101010" },
+    { x: 350, y: 724, width: 10, height: 116, color: "#101010" },
+    { x: 650, y: 770, width: 10, height: 70, color: "#101010" },
+    { x: 690, y: 690, width: 110, height: 10, color: "#101010" },
+    { x: 560, y: 724, width: 10, height: 116, color: "#101010" },
     { x: 175, y: 210, width: 58, height: 8, color: "#1e58c8" },
     { x: 235, y: 210, width: 70, height: 8, color: "#e5df22" },
     { x: 305, y: 210, width: 66, height: 8, color: "#1e58c8" },
-    { x: 435, y: 88, width: 8, height: 128, color: "#e5df22" },
-    { x: 435, y: 216, width: 8, height: 58, color: "#1e58c8" },
+    { x: 435, y: 88, width: 8, height: 76, color: "#e5df22" },
+    { x: 435, y: 238, width: 8, height: 36, color: "#1e58c8" },
     { x: 443, y: 274, width: 60, height: 8, color: "#ff6f73" },
     { x: 528, y: 176, width: 8, height: 66, color: "#b24aa4" },
     { x: 528, y: 242, width: 54, height: 8, color: "#b05b36" },
@@ -279,7 +279,7 @@ const roomMazeWaypoints = [
   { x: 600, y: 280 },
   { x: 200, y: 320 },
   { x: 320, y: 320 },
-  { x: 440, y: 320 },
+  { x: 400, y: 280 },
   { x: 240, y: 360 },
   { x: 640, y: 360 },
   { x: 760, y: 360 },
@@ -296,11 +296,11 @@ const roomMazeWaypoints = [
   { x: 640, y: 520 },
   { x: 160, y: 560 },
   { x: 520, y: 560 },
-  { x: 240, y: 600 },
+  { x: 160, y: 560 },
   { x: 360, y: 600 },
   { x: 640, y: 600 },
   { x: 680, y: 600 },
-  { x: 200, y: 640 },
+  { x: 200, y: 720 },
   { x: 360, y: 640 },
   { x: 440, y: 640 },
   { x: 680, y: 640 },
@@ -340,7 +340,7 @@ const roomBreachRoutes = {
       { x: 200, y: 320 },
       { x: 200, y: 440 },
       { x: 160, y: 520 },
-      { x: 240, y: 600 },
+      { x: 160, y: 560 },
       { x: 440, y: 720 },
     ],
   ],
@@ -359,7 +359,7 @@ const roomBreachRoutes = {
       { x: 720, y: 160 },
       { x: 600, y: 160 },
       { x: 480, y: 240 },
-      { x: 440, y: 320 },
+      { x: 400, y: 280 },
       { x: 480, y: 440 },
       { x: 440, y: 520 },
       { x: 360, y: 640 },
@@ -387,7 +387,7 @@ const roomBreachRoutes = {
     ],
     [
       { x: 240, y: 760 },
-      { x: 240, y: 600 },
+      { x: 160, y: 560 },
       { x: 160, y: 520 },
       { x: 200, y: 440 },
       { x: 240, y: 360 },
@@ -421,7 +421,7 @@ const roomBreachRoutes = {
       { x: 640, y: 520 },
       { x: 560, y: 520 },
       { x: 480, y: 440 },
-      { x: 440, y: 320 },
+      { x: 400, y: 280 },
       { x: 400, y: 240 },
     ],
     [
@@ -619,6 +619,11 @@ function normalizeVector(x, y) {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function smoothAngle(currentAngle, targetAngle, amount, maxStep = Infinity) {
+  const difference = Math.atan2(Math.sin(targetAngle - currentAngle), Math.cos(targetAngle - currentAngle));
+  return currentAngle + clamp(difference * amount, -maxStep, maxStep);
 }
 
 function colorWithAlpha(hexColor, alpha) {
@@ -1047,12 +1052,15 @@ function updateRoomSquadWaypoint(ball) {
     ball.roomWaypointIndex += 1;
     const nextObjective = route[Math.min(ball.roomWaypointIndex, route.length - 1)];
     const scanDirection = normalizeVector(nextObjective.x - ball.x, nextObjective.y - ball.y);
-    ball.lookAngle = Math.atan2(scanDirection.y, scanDirection.x);
-    ball.scanBaseAngle = ball.lookAngle;
-    ball.scanDuration = randomBetween(0.36, 0.68);
+    const scanAngle = Math.atan2(scanDirection.y, scanDirection.x);
+    if (!Number.isFinite(ball.lookAngle)) {
+      ball.lookAngle = scanAngle;
+    }
+    ball.scanBaseAngle = scanAngle;
+    ball.scanDuration = randomBetween(0.8, 1.25);
     ball.scanTimer = ball.scanDuration;
     ball.scanSide = ball.scanSide * -1 || (Math.random() < 0.5 ? -1 : 1);
-    ball.stopTimer = Math.max(ball.stopTimer ?? 0, ball.scanDuration);
+    ball.stopTimer = Math.max(ball.stopTimer ?? 0, Math.min(ball.scanDuration, 0.72));
     ball.awarenessTimer = 0;
   }
 }
@@ -1099,6 +1107,47 @@ function chooseRoomAmbushPoint(ball) {
   }).sort((a, b) => a.score - b.score);
 
   return scoredPoints[0]?.point ?? chooseRoomCoverPoint(ball);
+}
+
+function chooseRoomEngagementPoint(ball, target, preferredDistance, fallbackPoint) {
+  if (
+    ball.roomAction === "engage"
+    && ball.patrolPoint
+    && ball.awarenessTimer > 0.32
+    && isPointInRoomMap(ball.patrolPoint, ball.radius + 4)
+    && hasLineOfSight(ball.patrolPoint, target)
+  ) {
+    return ball.patrolPoint;
+  }
+
+  const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
+  const maxRange = weapon?.range ?? 260;
+  const candidatePoints = [...getRoomCoverPoints(), ...roomMazeWaypoints, ...getRoomPatrolPoints()]
+    .filter((point) => {
+      const targetDistance = distanceBetween(point, target);
+      return distanceBetween(ball, point) > 28
+        && distanceBetween(ball, point) < 260
+        && targetDistance > 72
+        && targetDistance < maxRange * 0.96
+        && isPointInRoomMap(point, ball.radius + 4)
+        && hasLineOfSight(point, target);
+    })
+    .map((point) => {
+      const targetDistance = distanceBetween(point, target);
+      const enemyExposure = isPointVisibleToEnemies(point, ball.team, 280) ? 38 : 0;
+      const wallSupport = getRoomObstacles().some((obstacle) => distanceBetween(point, getRectCenter(obstacle)) < 100) ? -34 : 0;
+      return {
+        point,
+        score: distanceBetween(ball, point) * 0.62
+          + Math.abs(targetDistance - preferredDistance) * 0.82
+          + enemyExposure
+          + wallSupport
+          + Math.random() * 12,
+      };
+    })
+    .sort((a, b) => a.score - b.score);
+
+  return candidatePoints[0]?.point ?? fallbackPoint;
 }
 
 function chooseRoomEscapePoint(ball) {
@@ -1650,7 +1699,7 @@ function createBall(team, index, total) {
     y,
     vx: direction.x * baseSpeed,
     vy: direction.y * baseSpeed,
-    radius: randomBetween(15, 19),
+    radius: isRoomMode() ? randomBetween(12, 14) : randomBetween(15, 19),
     health: maxHealth,
     hitTimer: randomBetween(0, hitCooldown),
     weapon: startingWeaponType
@@ -2067,7 +2116,13 @@ function moveRoomBallToward(ball, point, speed, deltaSeconds) {
   const movementPoint = chooseRoomMovementPoint(ball, safePoint);
   const movementDistance = distanceBetween(ball, movementPoint);
   const desiredDirection = normalizeVector(movementPoint.x - ball.x, movementPoint.y - ball.y);
-  ball.lookAngle = Math.atan2(desiredDirection.y, desiredDirection.x);
+  const movementAngle = Math.atan2(desiredDirection.y, desiredDirection.x);
+  ball.lookAngle = smoothAngle(
+    ball.lookAngle ?? movementAngle,
+    movementAngle,
+    Math.min(1, deltaSeconds * 4.2),
+    deltaSeconds * 2.6,
+  );
   const steeringDirection = getRoomSteeringDirection(ball, desiredDirection);
   const arrivalSpeed = Math.min(distance, movementDistance) < 70
     ? speed * clamp(Math.min(distance, movementDistance) / 70, 0.28, 1)
@@ -2156,9 +2211,9 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
       x: ball.x + direction.x * (distance > preferredDistance ? 70 : -58) + strafeDirection.x * ball.strafeSide * 32,
       y: ball.y + direction.y * (distance > preferredDistance ? 70 : -58) + strafeDirection.y * ball.strafeSide * 32,
     };
+    const engagementPoint = chooseRoomEngagementPoint(ball, target, preferredDistance, anchor);
 
-    setRoomAction(ball, "engage", null, 0.4);
-    moveRoomBallToward(ball, anchor, weapon ? 132 : 146, deltaSeconds);
+    moveRoomAction(ball, "engage", engagementPoint, weapon ? 126 : 140, deltaSeconds, 0.72);
     keepRoomSpacing(ball, deltaSeconds);
     return;
   }
@@ -2181,8 +2236,28 @@ function updateRoomScan(ball, deltaSeconds, hasTarget) {
 
   const duration = Math.max(0.1, ball.scanDuration ?? 0.45);
   const progress = 1 - (ball.scanTimer / duration);
-  const sweep = Math.sin(progress * Math.PI * 2) * 0.78 * (ball.scanSide || 1);
-  ball.lookAngle = ball.scanBaseAngle + sweep;
+  const sweep = Math.sin(progress * Math.PI) * 0.62 * (ball.scanSide || 1);
+  const targetAngle = ball.scanBaseAngle + sweep;
+  ball.lookAngle = smoothAngle(
+    ball.lookAngle ?? targetAngle,
+    targetAngle,
+    Math.min(1, deltaSeconds * 3.2),
+    deltaSeconds * 2.1,
+  );
+}
+
+function updateRoomAimDirection(ball, target, deltaSeconds) {
+  if (!target) {
+    return;
+  }
+
+  const targetAngle = Math.atan2(target.y - ball.y, target.x - ball.x);
+  ball.lookAngle = smoothAngle(
+    ball.lookAngle ?? targetAngle,
+    targetAngle,
+    Math.min(1, deltaSeconds * 5),
+    deltaSeconds * 2.8,
+  );
 }
 
 function steerTowardTargets(deltaSeconds) {
@@ -2201,6 +2276,7 @@ function steerTowardTargets(deltaSeconds) {
     ball.vy *= 1 - 0.012 * deltaSeconds;
 
     if (isRoomMode()) {
+      updateRoomAimDirection(ball, target, deltaSeconds);
       updateRoomScan(ball, deltaSeconds, Boolean(target));
       applyRoomAwareness(ball, target, deltaSeconds);
     }
@@ -3414,16 +3490,16 @@ function drawProjectiles() {
 }
 
 function getWeaponAimAngle(ball) {
+  if (isRoomMode() && Number.isFinite(ball.lookAngle)) {
+    return ball.lookAngle;
+  }
+
   const target = ball.targetId
     ? state.balls.find((candidate) => candidate.id === ball.targetId && candidate.alive)
     : findClosestEnemy(ball);
 
   if (target) {
     return Math.atan2(target.y - ball.y, target.x - ball.x);
-  }
-
-  if (Number.isFinite(ball.lookAngle)) {
-    return ball.lookAngle;
   }
 
   return Math.atan2(ball.vy, ball.vx);

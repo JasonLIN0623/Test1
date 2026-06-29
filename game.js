@@ -114,11 +114,13 @@ function scaleRoomNumber(value, axis) {
 }
 
 function scaleRoomRect(rect) {
+  const { x, y, width, height, ...rest } = rect;
   return {
-    x: scaleRoomNumber(rect.x, "x"),
-    y: scaleRoomNumber(rect.y, "y"),
-    width: Math.round(rect.width * roomScale),
-    height: Math.round(rect.height * roomScale),
+    ...rest,
+    x: scaleRoomNumber(x, "x"),
+    y: scaleRoomNumber(y, "y"),
+    width: Math.round(width * roomScale),
+    height: Math.round(height * roomScale),
   };
 }
 
@@ -141,309 +143,277 @@ function scaleRoomMap(map) {
 }
 
 const roomMap = scaleRoomMap({
-  bounds: { x: 30, y: 40, width: 840, height: 820 },
+  bounds: { x: 100, y: 80, width: 700, height: 760 },
   walls: [
-    { x: 270, y: 40, width: 18, height: 98 },
-    { x: 270, y: 196, width: 18, height: 122 },
-    { x: 270, y: 374, width: 18, height: 112 },
-    { x: 270, y: 542, width: 18, height: 122 },
-    { x: 270, y: 722, width: 18, height: 138 },
-    { x: 382, y: 40, width: 18, height: 152 },
-    { x: 382, y: 250, width: 18, height: 150 },
-    { x: 382, y: 486, width: 18, height: 150 },
-    { x: 382, y: 694, width: 18, height: 166 },
-    { x: 500, y: 40, width: 18, height: 152 },
-    { x: 500, y: 250, width: 18, height: 150 },
-    { x: 500, y: 486, width: 18, height: 150 },
-    { x: 500, y: 694, width: 18, height: 166 },
-    { x: 612, y: 40, width: 18, height: 98 },
-    { x: 612, y: 196, width: 18, height: 122 },
-    { x: 612, y: 374, width: 18, height: 112 },
-    { x: 612, y: 542, width: 18, height: 122 },
-    { x: 612, y: 722, width: 18, height: 138 },
-    { x: 30, y: 206, width: 132, height: 18 },
-    { x: 222, y: 206, width: 132, height: 18 },
-    { x: 546, y: 206, width: 132, height: 18 },
-    { x: 738, y: 206, width: 132, height: 18 },
-    { x: 30, y: 350, width: 100, height: 18 },
-    { x: 190, y: 350, width: 164, height: 18 },
-    { x: 546, y: 350, width: 164, height: 18 },
-    { x: 770, y: 350, width: 100, height: 18 },
-    { x: 30, y: 510, width: 100, height: 18 },
-    { x: 190, y: 510, width: 164, height: 18 },
-    { x: 546, y: 510, width: 164, height: 18 },
-    { x: 770, y: 510, width: 100, height: 18 },
-    { x: 30, y: 666, width: 132, height: 18 },
-    { x: 222, y: 666, width: 132, height: 18 },
-    { x: 546, y: 666, width: 132, height: 18 },
-    { x: 738, y: 666, width: 132, height: 18 },
-    { x: 432, y: 258, width: 36, height: 126 },
-    { x: 432, y: 476, width: 36, height: 126 },
+    { x: 145, y: 80, width: 10, height: 140, color: "#101010" },
+    { x: 100, y: 210, width: 122, height: 10, color: "#101010" },
+    { x: 650, y: 80, width: 10, height: 140, color: "#101010" },
+    { x: 650, y: 210, width: 150, height: 10, color: "#101010" },
+    { x: 145, y: 700, width: 10, height: 140, color: "#101010" },
+    { x: 100, y: 690, width: 250, height: 10, color: "#101010" },
+    { x: 350, y: 690, width: 10, height: 150, color: "#101010" },
+    { x: 650, y: 700, width: 10, height: 140, color: "#101010" },
+    { x: 560, y: 690, width: 240, height: 10, color: "#101010" },
+    { x: 560, y: 690, width: 10, height: 150, color: "#101010" },
+    { x: 175, y: 210, width: 58, height: 8, color: "#1e58c8" },
+    { x: 235, y: 210, width: 70, height: 8, color: "#e5df22" },
+    { x: 305, y: 210, width: 66, height: 8, color: "#1e58c8" },
+    { x: 435, y: 88, width: 8, height: 128, color: "#e5df22" },
+    { x: 435, y: 216, width: 8, height: 58, color: "#1e58c8" },
+    { x: 443, y: 274, width: 60, height: 8, color: "#ff6f73" },
+    { x: 528, y: 176, width: 8, height: 66, color: "#b24aa4" },
+    { x: 528, y: 242, width: 54, height: 8, color: "#b05b36" },
+    { x: 635, y: 250, width: 8, height: 58, color: "#179b4a" },
+    { x: 635, y: 250, width: 62, height: 8, color: "#b24aa4" },
+    { x: 742, y: 250, width: 8, height: 62, color: "#ff6f73" },
+    { x: 704, y: 312, width: 46, height: 8, color: "#ff6f73" },
+    { x: 156, y: 250, width: 8, height: 60, color: "#b24aa4" },
+    { x: 156, y: 250, width: 58, height: 8, color: "#b24aa4" },
+    { x: 102, y: 342, width: 44, height: 8, color: "#b24aa4" },
+    { x: 150, y: 342, width: 8, height: 78, color: "#1e58c8" },
+    { x: 205, y: 400, width: 92, height: 8, color: "#b24aa4" },
+    { x: 296, y: 342, width: 8, height: 66, color: "#b24aa4" },
+    { x: 330, y: 342, width: 8, height: 58, color: "#b24aa4" },
+    { x: 330, y: 414, width: 130, height: 8, color: "#b24aa4" },
+    { x: 500, y: 414, width: 68, height: 8, color: "#e5322d" },
+    { x: 370, y: 472, width: 112, height: 8, color: "#e5322d" },
+    { x: 520, y: 472, width: 112, height: 8, color: "#e5322d" },
+    { x: 406, y: 306, width: 8, height: 64, color: "#1e58c8" },
+    { x: 468, y: 306, width: 8, height: 64, color: "#1e58c8" },
+    { x: 406, y: 370, width: 70, height: 8, color: "#ff6f73" },
+    { x: 536, y: 308, width: 8, height: 56, color: "#6e6f72" },
+    { x: 584, y: 308, width: 8, height: 56, color: "#6e6f72" },
+    { x: 536, y: 364, width: 56, height: 8, color: "#6e6f72" },
+    { x: 585, y: 400, width: 92, height: 8, color: "#ff6f73" },
+    { x: 695, y: 342, width: 8, height: 56, color: "#b24aa4" },
+    { x: 696, y: 488, width: 8, height: 76, color: "#b24aa4" },
+    { x: 704, y: 500, width: 86, height: 8, color: "#1e58c8" },
+    { x: 198, y: 500, width: 96, height: 8, color: "#e5322d" },
+    { x: 198, y: 518, width: 8, height: 78, color: "#b24aa4" },
+    { x: 102, y: 592, width: 88, height: 8, color: "#b24aa4" },
+    { x: 156, y: 600, width: 8, height: 88, color: "#b24aa4" },
+    { x: 262, y: 548, width: 118, height: 8, color: "#e5322d" },
+    { x: 314, y: 556, width: 8, height: 80, color: "#b24aa4" },
+    { x: 400, y: 580, width: 8, height: 68, color: "#1e58c8" },
+    { x: 400, y: 580, width: 76, height: 8, color: "#ff6f73" },
+    { x: 476, y: 580, width: 8, height: 68, color: "#1e58c8" },
+    { x: 536, y: 580, width: 8, height: 58, color: "#6e6f72" },
+    { x: 584, y: 580, width: 8, height: 58, color: "#6e6f72" },
+    { x: 632, y: 548, width: 96, height: 8, color: "#ff6f73" },
+    { x: 744, y: 558, width: 8, height: 88, color: "#ff6f73" },
+    { x: 635, y: 638, width: 8, height: 70, color: "#b24aa4" },
+    { x: 635, y: 708, width: 58, height: 8, color: "#b24aa4" },
+    { x: 740, y: 642, width: 8, height: 92, color: "#ff6f73" },
+    { x: 704, y: 734, width: 44, height: 8, color: "#ff6f73" },
+    { x: 260, y: 642, width: 8, height: 58, color: "#179b4a" },
+    { x: 268, y: 642, width: 54, height: 8, color: "#8a5520" },
+    { x: 520, y: 690, width: 8, height: 72, color: "#6e6f72" },
+    { x: 520, y: 762, width: 34, height: 8, color: "#6e6f72" },
   ],
-  doors: [
-    { x: 275, y: 144, width: 8, height: 46 },
-    { x: 275, y: 324, width: 8, height: 44 },
-    { x: 275, y: 492, width: 8, height: 44 },
-    { x: 275, y: 672, width: 8, height: 44 },
-    { x: 387, y: 198, width: 8, height: 46 },
-    { x: 387, y: 406, width: 8, height: 74 },
-    { x: 387, y: 642, width: 8, height: 46 },
-    { x: 505, y: 198, width: 8, height: 46 },
-    { x: 505, y: 406, width: 8, height: 74 },
-    { x: 505, y: 642, width: 8, height: 46 },
-    { x: 617, y: 144, width: 8, height: 46 },
-    { x: 617, y: 324, width: 8, height: 44 },
-    { x: 617, y: 492, width: 8, height: 44 },
-    { x: 617, y: 672, width: 8, height: 44 },
-    { x: 168, y: 211, width: 48, height: 8 },
-    { x: 136, y: 355, width: 48, height: 8 },
-    { x: 136, y: 515, width: 48, height: 8 },
-    { x: 168, y: 671, width: 48, height: 8 },
-    { x: 684, y: 211, width: 48, height: 8 },
-    { x: 716, y: 355, width: 48, height: 8 },
-    { x: 716, y: 515, width: 48, height: 8 },
-    { x: 684, y: 671, width: 48, height: 8 },
-  ],
+  doors: [],
   spawnZones: {
     red: [
-      { x: 62, y: 74, width: 170, height: 96 },
+      { x: 190, y: 126, width: 90, height: 92 },
     ],
     blue: [
-      { x: 668, y: 74, width: 170, height: 96 },
+      { x: 700, y: 110, width: 80, height: 100 },
     ],
     green: [
-      { x: 62, y: 690, width: 170, height: 96 },
+      { x: 190, y: 730, width: 90, height: 80 },
     ],
     gold: [
-      { x: 668, y: 690, width: 170, height: 96 },
+      { x: 690, y: 760, width: 85, height: 70 },
     ],
   },
 });
 
 const roomPickupZones = [
-  { x: 62, y: 74, width: 170, height: 96 },
-  { x: 80, y: 252, width: 160, height: 78 },
-  { x: 84, y: 390, width: 168, height: 88 },
-  { x: 80, y: 548, width: 160, height: 82 },
-  { x: 62, y: 690, width: 170, height: 96 },
-  { x: 668, y: 74, width: 170, height: 96 },
-  { x: 660, y: 252, width: 160, height: 78 },
-  { x: 648, y: 390, width: 168, height: 88 },
-  { x: 660, y: 548, width: 160, height: 82 },
-  { x: 668, y: 690, width: 170, height: 96 },
-  { x: 414, y: 82, width: 72, height: 88 },
-  { x: 414, y: 390, width: 72, height: 96 },
-  { x: 414, y: 696, width: 72, height: 88 },
+  { x: 190, y: 126, width: 90, height: 92 },
+  { x: 700, y: 110, width: 80, height: 100 },
+  { x: 190, y: 730, width: 90, height: 80 },
+  { x: 690, y: 760, width: 85, height: 70 },
+  { x: 190, y: 270, width: 130, height: 100 },
+  { x: 580, y: 270, width: 130, height: 100 },
+  { x: 190, y: 530, width: 130, height: 100 },
+  { x: 580, y: 530, width: 130, height: 100 },
+  { x: 380, y: 390, width: 140, height: 120 },
 ].map(scaleRoomRect);
 
-const roomBlueprintSites = [
-  {
-    label: "BOMB\nSITE A",
-    rect: scaleRoomRect({ x: 112, y: 382, width: 156, height: 118 }),
-  },
-  {
-    label: "BOMB\nSITE B",
-    rect: scaleRoomRect({ x: 632, y: 382, width: 156, height: 118 }),
-  },
-  {
-    label: "BOMB\nSITE C",
-    rect: scaleRoomRect({ x: 112, y: 528, width: 156, height: 102 }),
-  },
-  {
-    label: "BOMB\nSITE D",
-    rect: scaleRoomRect({ x: 632, y: 528, width: 156, height: 102 }),
-  },
-];
+const roomBlueprintSites = [];
 
-const roomBlueprintLabels = [
-  { text: "MAIN HALL", point: scaleRoomPoint({ x: 450, y: 456 }) },
-  { text: "NORTH DEEP HALL", point: scaleRoomPoint({ x: 450, y: 116 }) },
-  { text: "SOUTH DEEP HALL", point: scaleRoomPoint({ x: 450, y: 748 }) },
-  { text: "FIRST BREACH", point: scaleRoomPoint({ x: 326, y: 188 }) },
-  { text: "SECOND BREACH", point: scaleRoomPoint({ x: 574, y: 188 }) },
-  { text: "UTILITY ROOMS", point: scaleRoomPoint({ x: 450, y: 626 }) },
-];
+const roomBlueprintLabels = [];
 
-const roomBlueprintEntries = [
-  { text: "RED ENTRY", point: scaleRoomPoint({ x: 62, y: 88 }), align: "left" },
-  { text: "BLUE ENTRY", point: scaleRoomPoint({ x: 838, y: 88 }), align: "right" },
-  { text: "GREEN ENTRY", point: scaleRoomPoint({ x: 62, y: 830 }), align: "left" },
-  { text: "GOLD ENTRY", point: scaleRoomPoint({ x: 838, y: 830 }), align: "right" },
-];
+const roomBlueprintEntries = [];
 
-const roomBlueprintRoutes = [
-  [
-    scaleRoomPoint({ x: 86, y: 126 }),
-    scaleRoomPoint({ x: 188, y: 126 }),
-    scaleRoomPoint({ x: 280, y: 168 }),
-    scaleRoomPoint({ x: 336, y: 220 }),
-    scaleRoomPoint({ x: 450, y: 220 }),
-    scaleRoomPoint({ x: 620, y: 168 }),
-    scaleRoomPoint({ x: 768, y: 168 }),
-  ],
-  [
-    scaleRoomPoint({ x: 814, y: 126 }),
-    scaleRoomPoint({ x: 712, y: 126 }),
-    scaleRoomPoint({ x: 620, y: 168 }),
-    scaleRoomPoint({ x: 564, y: 220 }),
-    scaleRoomPoint({ x: 450, y: 220 }),
-    scaleRoomPoint({ x: 280, y: 168 }),
-    scaleRoomPoint({ x: 132, y: 168 }),
-  ],
-  [
-    scaleRoomPoint({ x: 86, y: 744 }),
-    scaleRoomPoint({ x: 188, y: 744 }),
-    scaleRoomPoint({ x: 280, y: 692 }),
-    scaleRoomPoint({ x: 336, y: 642 }),
-    scaleRoomPoint({ x: 450, y: 642 }),
-    scaleRoomPoint({ x: 620, y: 692 }),
-    scaleRoomPoint({ x: 768, y: 692 }),
-  ],
-  [
-    scaleRoomPoint({ x: 814, y: 744 }),
-    scaleRoomPoint({ x: 712, y: 744 }),
-    scaleRoomPoint({ x: 620, y: 692 }),
-    scaleRoomPoint({ x: 564, y: 642 }),
-    scaleRoomPoint({ x: 450, y: 642 }),
-    scaleRoomPoint({ x: 280, y: 692 }),
-    scaleRoomPoint({ x: 132, y: 692 }),
-  ],
-  [
-    scaleRoomPoint({ x: 450, y: 126 }),
-    scaleRoomPoint({ x: 450, y: 286 }),
-    scaleRoomPoint({ x: 450, y: 450 }),
-    scaleRoomPoint({ x: 450, y: 614 }),
-    scaleRoomPoint({ x: 450, y: 744 }),
-  ],
-];
+const roomBlueprintRoutes = [];
+
+const roomMazeWaypoints = [
+  { x: 240, y: 160 },
+  { x: 360, y: 160 },
+  { x: 480, y: 160 },
+  { x: 600, y: 160 },
+  { x: 720, y: 160 },
+  { x: 400, y: 240 },
+  { x: 480, y: 240 },
+  { x: 240, y: 280 },
+  { x: 360, y: 280 },
+  { x: 560, y: 280 },
+  { x: 600, y: 280 },
+  { x: 200, y: 320 },
+  { x: 320, y: 320 },
+  { x: 440, y: 320 },
+  { x: 240, y: 360 },
+  { x: 640, y: 360 },
+  { x: 760, y: 360 },
+  { x: 200, y: 440 },
+  { x: 280, y: 440 },
+  { x: 480, y: 440 },
+  { x: 600, y: 440 },
+  { x: 680, y: 440 },
+  { x: 760, y: 440 },
+  { x: 160, y: 520 },
+  { x: 320, y: 520 },
+  { x: 440, y: 520 },
+  { x: 560, y: 520 },
+  { x: 640, y: 520 },
+  { x: 160, y: 560 },
+  { x: 520, y: 560 },
+  { x: 240, y: 600 },
+  { x: 360, y: 600 },
+  { x: 640, y: 600 },
+  { x: 680, y: 600 },
+  { x: 200, y: 640 },
+  { x: 360, y: 640 },
+  { x: 440, y: 640 },
+  { x: 680, y: 640 },
+  { x: 400, y: 720 },
+  { x: 480, y: 720 },
+  { x: 240, y: 760 },
+  { x: 320, y: 760 },
+  { x: 440, y: 760 },
+  { x: 600, y: 760 },
+  { x: 720, y: 780 },
+].map(scaleRoomPoint);
 
 const roomBreachRoutes = {
   red: [
     [
-      { x: 180, y: 126 },
-      { x: 336, y: 168 },
-      { x: 450, y: 222 },
-      { x: 565, y: 168 },
-      { x: 740, y: 150 },
-      { x: 710, y: 292 },
-      { x: 565, y: 310 },
-      { x: 450, y: 450 },
+      { x: 240, y: 160 },
+      { x: 400, y: 160 },
+      { x: 400, y: 240 },
+      { x: 320, y: 320 },
+      { x: 280, y: 440 },
+      { x: 440, y: 520 },
+      { x: 640, y: 600 },
+      { x: 720, y: 780 },
     ],
     [
-      { x: 180, y: 126 },
-      { x: 180, y: 292 },
-      { x: 228, y: 440 },
-      { x: 336, y: 444 },
-      { x: 450, y: 444 },
-      { x: 565, y: 444 },
-      { x: 732, y: 440 },
-      { x: 724, y: 292 },
+      { x: 240, y: 160 },
+      { x: 360, y: 160 },
+      { x: 480, y: 240 },
+      { x: 560, y: 280 },
+      { x: 640, y: 360 },
+      { x: 680, y: 440 },
+      { x: 640, y: 520 },
     ],
     [
-      { x: 180, y: 126 },
-      { x: 150, y: 292 },
-      { x: 150, y: 552 },
-      { x: 180, y: 700 },
-      { x: 336, y: 712 },
-      { x: 450, y: 642 },
-      { x: 565, y: 712 },
-      { x: 740, y: 734 },
+      { x: 240, y: 160 },
+      { x: 240, y: 280 },
+      { x: 200, y: 320 },
+      { x: 200, y: 440 },
+      { x: 160, y: 520 },
+      { x: 240, y: 600 },
+      { x: 440, y: 720 },
     ],
   ],
   blue: [
     [
-      { x: 720, y: 126 },
-      { x: 565, y: 168 },
-      { x: 450, y: 222 },
-      { x: 336, y: 168 },
-      { x: 160, y: 150 },
-      { x: 190, y: 292 },
-      { x: 336, y: 310 },
-      { x: 450, y: 450 },
+      { x: 720, y: 160 },
+      { x: 600, y: 160 },
+      { x: 600, y: 280 },
+      { x: 640, y: 360 },
+      { x: 680, y: 440 },
+      { x: 640, y: 520 },
+      { x: 360, y: 600 },
+      { x: 240, y: 760 },
     ],
     [
-      { x: 720, y: 126 },
-      { x: 720, y: 292 },
-      { x: 672, y: 440 },
-      { x: 565, y: 444 },
-      { x: 450, y: 444 },
-      { x: 336, y: 444 },
-      { x: 168, y: 440 },
-      { x: 176, y: 292 },
+      { x: 720, y: 160 },
+      { x: 600, y: 160 },
+      { x: 480, y: 240 },
+      { x: 440, y: 320 },
+      { x: 480, y: 440 },
+      { x: 440, y: 520 },
+      { x: 360, y: 640 },
     ],
     [
-      { x: 720, y: 126 },
-      { x: 750, y: 292 },
-      { x: 750, y: 552 },
-      { x: 720, y: 700 },
-      { x: 565, y: 712 },
-      { x: 450, y: 642 },
-      { x: 336, y: 712 },
-      { x: 160, y: 734 },
+      { x: 720, y: 160 },
+      { x: 760, y: 360 },
+      { x: 760, y: 440 },
+      { x: 640, y: 520 },
+      { x: 520, y: 560 },
+      { x: 440, y: 640 },
+      { x: 320, y: 760 },
     ],
   ],
   green: [
     [
-      { x: 180, y: 744 },
-      { x: 336, y: 712 },
-      { x: 450, y: 642 },
-      { x: 565, y: 712 },
-      { x: 740, y: 734 },
-      { x: 710, y: 568 },
-      { x: 565, y: 552 },
-      { x: 450, y: 450 },
+      { x: 240, y: 760 },
+      { x: 360, y: 640 },
+      { x: 360, y: 600 },
+      { x: 320, y: 520 },
+      { x: 280, y: 440 },
+      { x: 320, y: 320 },
+      { x: 400, y: 240 },
+      { x: 720, y: 160 },
     ],
     [
-      { x: 180, y: 744 },
-      { x: 180, y: 568 },
-      { x: 228, y: 440 },
-      { x: 336, y: 444 },
-      { x: 450, y: 444 },
-      { x: 565, y: 444 },
-      { x: 732, y: 440 },
-      { x: 724, y: 568 },
+      { x: 240, y: 760 },
+      { x: 240, y: 600 },
+      { x: 160, y: 520 },
+      { x: 200, y: 440 },
+      { x: 240, y: 360 },
+      { x: 360, y: 280 },
+      { x: 480, y: 160 },
     ],
     [
-      { x: 180, y: 744 },
-      { x: 150, y: 568 },
-      { x: 150, y: 392 },
-      { x: 180, y: 252 },
-      { x: 336, y: 170 },
-      { x: 450, y: 222 },
-      { x: 565, y: 170 },
-      { x: 740, y: 150 },
+      { x: 240, y: 760 },
+      { x: 400, y: 720 },
+      { x: 440, y: 640 },
+      { x: 520, y: 560 },
+      { x: 640, y: 520 },
+      { x: 760, y: 440 },
+      { x: 720, y: 160 },
     ],
   ],
   gold: [
     [
-      { x: 720, y: 744 },
-      { x: 565, y: 712 },
-      { x: 450, y: 642 },
-      { x: 336, y: 712 },
-      { x: 160, y: 734 },
-      { x: 190, y: 568 },
-      { x: 336, y: 552 },
-      { x: 450, y: 450 },
+      { x: 720, y: 780 },
+      { x: 600, y: 760 },
+      { x: 680, y: 640 },
+      { x: 640, y: 520 },
+      { x: 680, y: 440 },
+      { x: 640, y: 360 },
+      { x: 600, y: 280 },
+      { x: 240, y: 160 },
     ],
     [
-      { x: 720, y: 744 },
-      { x: 720, y: 568 },
-      { x: 672, y: 440 },
-      { x: 565, y: 444 },
-      { x: 450, y: 444 },
-      { x: 336, y: 444 },
-      { x: 168, y: 440 },
-      { x: 176, y: 568 },
+      { x: 720, y: 780 },
+      { x: 680, y: 600 },
+      { x: 640, y: 520 },
+      { x: 560, y: 520 },
+      { x: 480, y: 440 },
+      { x: 440, y: 320 },
+      { x: 400, y: 240 },
     ],
     [
-      { x: 720, y: 744 },
-      { x: 750, y: 568 },
-      { x: 750, y: 392 },
-      { x: 720, y: 252 },
-      { x: 565, y: 170 },
-      { x: 450, y: 222 },
-      { x: 336, y: 170 },
-      { x: 160, y: 150 },
+      { x: 720, y: 780 },
+      { x: 600, y: 760 },
+      { x: 480, y: 720 },
+      { x: 440, y: 640 },
+      { x: 320, y: 520 },
+      { x: 200, y: 440 },
+      { x: 240, y: 280 },
     ],
   ],
 };
@@ -1039,10 +1009,12 @@ function getRoomSquadEntryPoint(ball) {
   const lane = (routeMateIndex % 3) - 1;
   const file = Math.floor(routeMateIndex / 3);
 
-  return {
+  const entryPoint = {
     x: objective.x + side.x * lane * 22 - forward.x * file * 28,
     y: objective.y + side.y * lane * 22 - forward.y * file * 28,
   };
+
+  return isPointInRoomMap(entryPoint, ball.radius + 4) ? entryPoint : objective;
 }
 
 function updateRoomSquadWaypoint(ball) {
@@ -1343,6 +1315,10 @@ function getAliveTeamCounts() {
 }
 
 function isTeamOutnumbered(team) {
+  if (isRoomMode()) {
+    return false;
+  }
+
   const counts = getAliveTeamCounts();
   const strongestEnemyCount = Math.max(
     ...getActiveTeams()
@@ -1665,6 +1641,7 @@ function createBall(team, index, total) {
     roomRouteIndex: isRoomMode() ? index % (roomBreachRoutes[team]?.length ?? 1) : 0,
     roomWaypointIndex: 0,
     stuckTimer: 0,
+    stopTimer: 0,
     strafeSide: Math.random() < 0.5 ? -1 : 1,
     strafeTimer: randomBetween(0.8, 1.8),
     patrolPoint: roomSpawn ? randomPointInRoomMap(34) : null,
@@ -1690,10 +1667,6 @@ function resetGame() {
     for (let index = 0; index < ballCount; index += 1) {
       state.balls.push(createBall(team, index, ballCount));
     }
-  }
-
-  if (isRoomMode() && !bothRoomTeamsHaveWeapons()) {
-    seedRoomPickups();
   }
 
   startButton.textContent = "開始";
@@ -1734,7 +1707,7 @@ function seedRoomPickups() {
 }
 
 function updatePickupSpawner(deltaSeconds) {
-  if (isRoomMode() && bothRoomTeamsHaveWeapons()) {
+  if (isRoomMode()) {
     state.pickups = [];
     state.nextPickupIn = 1.2;
     return;
@@ -1842,8 +1815,10 @@ function fireWeapon(ball, target, weapon) {
   const baseAngle = Math.atan2(target.y - ball.y, target.x - ball.x);
   const aimAngle = baseAngle + randomBetween(-weapon.accuracySpread, weapon.accuracySpread);
   const pelletCount = weapon.pellets;
-  ball.vx -= Math.cos(baseAngle) * weapon.recoil;
-  ball.vy -= Math.sin(baseAngle) * weapon.recoil;
+  if (!isRoomMode()) {
+    ball.vx -= Math.cos(baseAngle) * weapon.recoil;
+    ball.vy -= Math.sin(baseAngle) * weapon.recoil;
+  }
 
   for (let index = 0; index < pelletCount; index += 1) {
     const offset = pelletCount === 1
@@ -2016,12 +1991,16 @@ function chooseRoomMovementPoint(ball, destination) {
   }
 
   const currentDistance = distanceBetween(ball, destination);
-  const candidates = getRoomPatrolPoints()
+  const navigationPoints = [...roomMazeWaypoints, ...getRoomPatrolPoints()]
     .filter((point) => {
       return distanceBetween(ball, point) > 36
-        && distanceBetween(point, destination) < currentDistance + 90
+        && isPointInRoomMap(point, ball.radius + 4)
         && hasLineOfSight(ball, point);
-    })
+    });
+  const forwardCandidates = navigationPoints.filter((point) => {
+    return distanceBetween(point, destination) < currentDistance + 120;
+  });
+  const candidates = (forwardCandidates.length > 0 ? forwardCandidates : navigationPoints)
     .map((point) => {
       const enemySightPenalty = isPointVisibleToEnemies(point, ball.team, 340) ? 60 : 0;
       return {
@@ -2034,11 +2013,18 @@ function chooseRoomMovementPoint(ball, destination) {
     })
     .sort((a, b) => a.score - b.score);
 
-  return candidates[0]?.point ?? destination;
+  return candidates[0]?.point ?? (isPointInRoomMap(destination, ball.radius + 4) ? destination : chooseRoomPatrolPoint(ball));
 }
 
 function moveRoomBallToward(ball, point, speed, deltaSeconds) {
-  const distance = distanceBetween(ball, point);
+  const safePoint = isPointInRoomMap(point, ball.radius + 4) ? point : chooseRoomPatrolPoint(ball);
+  const distance = distanceBetween(ball, safePoint);
+
+  if ((ball.stopTimer ?? 0) > 0) {
+    ball.vx *= 0.72;
+    ball.vy *= 0.72;
+    return;
+  }
 
   if (distance < 8) {
     ball.vx *= 0.62;
@@ -2046,7 +2032,7 @@ function moveRoomBallToward(ball, point, speed, deltaSeconds) {
     return;
   }
 
-  const movementPoint = chooseRoomMovementPoint(ball, point);
+  const movementPoint = chooseRoomMovementPoint(ball, safePoint);
   const movementDistance = distanceBetween(ball, movementPoint);
   const desiredDirection = normalizeVector(movementPoint.x - ball.x, movementPoint.y - ball.y);
   const steeringDirection = getRoomSteeringDirection(ball, desiredDirection);
@@ -2084,8 +2070,7 @@ function keepRoomSpacing(ball, deltaSeconds) {
 function applyRoomAwareness(ball, target, deltaSeconds) {
   ball.awarenessTimer = Math.max(0, ball.awarenessTimer - deltaSeconds);
   ball.strafeTimer = Math.max(0, ball.strafeTimer - deltaSeconds);
-  const outnumbered = isTeamOutnumbered(ball.team);
-  ball.ambushMode = outnumbered;
+  ball.ambushMode = false;
 
   if (!ball.weapon) {
     const weaponPickup = findPriorityWeaponPickup(ball);
@@ -2108,7 +2093,7 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
 
     if (weaponPickup) {
       const approachPoint = getWeaponApproachPoint(ball, weaponPickup);
-      moveRoomAction(ball, "arm", approachPoint, outnumbered ? 136 : 152, deltaSeconds, 0.9);
+      moveRoomAction(ball, "arm", approachPoint, 152, deltaSeconds, 0.9);
       return;
     }
 
@@ -2123,25 +2108,10 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
     }
   }
 
-  if (outnumbered) {
-    const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
-    const canAmbush = target && weapon && distanceBetween(ball, target) <= weapon.range * 0.92;
-
-    if (!canAmbush) {
-      if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 34 || ball.awarenessTimer <= 0) {
-        setRoomAction(ball, "hide", chooseRoomEscapePoint(ball), randomBetween(1.8, 3.2));
-      }
-
-      moveRoomBallToward(ball, ball.patrolPoint, 118, deltaSeconds);
-      keepRoomSpacing(ball, deltaSeconds);
-      return;
-    }
-  }
-
   if (target) {
     const distance = distanceBetween(ball, target);
     const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
-    const preferredDistance = weapon ? weapon.range * (outnumbered ? 0.72 : 0.56) : 96;
+    const preferredDistance = weapon ? weapon.range * 0.56 : 96;
     const direction = normalizeVector(target.x - ball.x, target.y - ball.y);
     const strafeDirection = normalizeVector(-direction.y, direction.x);
     if (ball.strafeTimer <= 0) {
@@ -2175,6 +2145,7 @@ function steerTowardTargets(deltaSeconds) {
     const target = findClosestEnemy(ball);
     ball.targetId = (ball.weapon || isRoomMode()) ? target?.id ?? null : null;
     ball.speedBoostTimer = Math.max(0, ball.speedBoostTimer - deltaSeconds);
+    ball.stopTimer = Math.max(0, (ball.stopTimer ?? 0) - deltaSeconds);
     ball.vx *= 1 - 0.012 * deltaSeconds;
     ball.vy *= 1 - 0.012 * deltaSeconds;
 
@@ -2225,12 +2196,12 @@ function moveBalls(deltaSeconds) {
         ball.stuckTimer = Math.max(0, (ball.stuckTimer ?? 0) - deltaSeconds * 1.8);
       }
 
-      if (ball.stuckTimer > 0.78) {
-        const turn = Math.random() < 0.5 ? Math.PI * 0.5 : -Math.PI * 0.5;
-        const escapeDirection = rotateVector(normalizeVector(ball.vx, ball.vy), turn);
-        ball.vx = escapeDirection.x * 92;
-        ball.vy = escapeDirection.y * 92;
+      if (ball.stuckTimer > 0.7) {
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.stopTimer = 0.24;
         ball.awarenessTimer = 0;
+        ball.patrolPoint = chooseRoomPatrolPoint(ball);
         ball.stuckTimer = 0;
       }
       continue;
@@ -2428,7 +2399,7 @@ function drawRoomDoor(door) {
 }
 
 function drawBlueprintGrid(bounds) {
-  context.fillStyle = "#dbe8ee";
+  context.fillStyle = "#f8f8f4";
   context.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
   context.save();
@@ -2437,11 +2408,11 @@ function drawBlueprintGrid(bounds) {
   context.clip();
 
   for (let stepIndex = 0; stepIndex < 2; stepIndex += 1) {
-    const spacing = stepIndex === 0 ? 12 : 60;
+    const spacing = stepIndex === 0 ? 16 : 80;
     context.strokeStyle = stepIndex === 0
-      ? "rgba(49, 83, 101, 0.14)"
-      : "rgba(49, 83, 101, 0.28)";
-    context.lineWidth = stepIndex === 0 ? 0.7 : 1.2;
+      ? "rgba(80, 80, 80, 0.08)"
+      : "rgba(80, 80, 80, 0.16)";
+    context.lineWidth = stepIndex === 0 ? 0.8 : 1.1;
 
     for (let x = bounds.x; x <= bounds.x + bounds.width; x += spacing) {
       context.beginPath();
@@ -2547,9 +2518,9 @@ function drawBlueprintAnnotations(bounds) {
   }
 
   context.textAlign = "right";
-  context.fillStyle = "rgba(32, 62, 78, 0.82)";
+  context.fillStyle = "rgba(24, 24, 24, 0.72)";
   context.font = "900 11px system-ui, sans-serif";
-  context.fillText("TACTICAL CQB PLAN / REV. 02", bounds.x + bounds.width - 18, bounds.y + bounds.height - 18);
+  context.fillText("CQB GRID ARENA", bounds.x + bounds.width - 18, bounds.y + bounds.height - 18);
   context.restore();
 }
 
@@ -2562,14 +2533,14 @@ function drawRoomMap() {
   drawBlueprintAnnotations(bounds);
 
   context.lineWidth = 6;
-  context.strokeStyle = "rgba(38, 68, 84, 0.8)";
+  context.strokeStyle = "#101010";
   context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
   for (const wall of roomMap.walls) {
-    context.fillStyle = "#536879";
+    context.fillStyle = wall.color ?? "#101010";
     context.fillRect(wall.x, wall.y, wall.width, wall.height);
-    context.strokeStyle = "rgba(24, 47, 60, 0.45)";
-    context.lineWidth = 2;
+    context.strokeStyle = "rgba(0, 0, 0, 0.18)";
+    context.lineWidth = 1;
     context.strokeRect(wall.x, wall.y, wall.width, wall.height);
   }
 

@@ -143,201 +143,307 @@ function scaleRoomMap(map) {
 const roomMap = scaleRoomMap({
   bounds: { x: 30, y: 40, width: 840, height: 820 },
   walls: [
-    { x: 360, y: 40, width: 18, height: 96 },
-    { x: 360, y: 196, width: 18, height: 132 },
-    { x: 360, y: 388, width: 18, height: 128 },
-    { x: 360, y: 576, width: 18, height: 130 },
-    { x: 360, y: 766, width: 18, height: 94 },
-    { x: 522, y: 40, width: 18, height: 96 },
-    { x: 522, y: 196, width: 18, height: 132 },
-    { x: 522, y: 388, width: 18, height: 128 },
-    { x: 522, y: 576, width: 18, height: 130 },
-    { x: 522, y: 766, width: 18, height: 94 },
-    { x: 30, y: 225, width: 142, height: 18 },
-    { x: 236, y: 225, width: 142, height: 18 },
-    { x: 30, y: 420, width: 142, height: 18 },
-    { x: 236, y: 420, width: 142, height: 18 },
-    { x: 30, y: 620, width: 142, height: 18 },
-    { x: 236, y: 620, width: 142, height: 18 },
-    { x: 522, y: 225, width: 142, height: 18 },
-    { x: 728, y: 225, width: 142, height: 18 },
-    { x: 522, y: 420, width: 142, height: 18 },
-    { x: 728, y: 420, width: 142, height: 18 },
-    { x: 522, y: 620, width: 142, height: 18 },
-    { x: 728, y: 620, width: 142, height: 18 },
-    { x: 431, y: 262, width: 38, height: 126 },
-    { x: 431, y: 512, width: 38, height: 126 },
+    { x: 270, y: 40, width: 18, height: 98 },
+    { x: 270, y: 196, width: 18, height: 122 },
+    { x: 270, y: 374, width: 18, height: 112 },
+    { x: 270, y: 542, width: 18, height: 122 },
+    { x: 270, y: 722, width: 18, height: 138 },
+    { x: 382, y: 40, width: 18, height: 152 },
+    { x: 382, y: 250, width: 18, height: 150 },
+    { x: 382, y: 486, width: 18, height: 150 },
+    { x: 382, y: 694, width: 18, height: 166 },
+    { x: 500, y: 40, width: 18, height: 152 },
+    { x: 500, y: 250, width: 18, height: 150 },
+    { x: 500, y: 486, width: 18, height: 150 },
+    { x: 500, y: 694, width: 18, height: 166 },
+    { x: 612, y: 40, width: 18, height: 98 },
+    { x: 612, y: 196, width: 18, height: 122 },
+    { x: 612, y: 374, width: 18, height: 112 },
+    { x: 612, y: 542, width: 18, height: 122 },
+    { x: 612, y: 722, width: 18, height: 138 },
+    { x: 30, y: 206, width: 132, height: 18 },
+    { x: 222, y: 206, width: 132, height: 18 },
+    { x: 546, y: 206, width: 132, height: 18 },
+    { x: 738, y: 206, width: 132, height: 18 },
+    { x: 30, y: 350, width: 100, height: 18 },
+    { x: 190, y: 350, width: 164, height: 18 },
+    { x: 546, y: 350, width: 164, height: 18 },
+    { x: 770, y: 350, width: 100, height: 18 },
+    { x: 30, y: 510, width: 100, height: 18 },
+    { x: 190, y: 510, width: 164, height: 18 },
+    { x: 546, y: 510, width: 164, height: 18 },
+    { x: 770, y: 510, width: 100, height: 18 },
+    { x: 30, y: 666, width: 132, height: 18 },
+    { x: 222, y: 666, width: 132, height: 18 },
+    { x: 546, y: 666, width: 132, height: 18 },
+    { x: 738, y: 666, width: 132, height: 18 },
+    { x: 432, y: 258, width: 36, height: 126 },
+    { x: 432, y: 476, width: 36, height: 126 },
   ],
   doors: [
-    { x: 365, y: 142, width: 8, height: 48 },
-    { x: 365, y: 334, width: 8, height: 48 },
-    { x: 365, y: 522, width: 8, height: 48 },
-    { x: 365, y: 712, width: 8, height: 48 },
-    { x: 527, y: 142, width: 8, height: 48 },
-    { x: 527, y: 334, width: 8, height: 48 },
-    { x: 527, y: 522, width: 8, height: 48 },
-    { x: 527, y: 712, width: 8, height: 48 },
-    { x: 180, y: 230, width: 48, height: 8 },
-    { x: 180, y: 425, width: 48, height: 8 },
-    { x: 180, y: 625, width: 48, height: 8 },
-    { x: 672, y: 230, width: 48, height: 8 },
-    { x: 672, y: 425, width: 48, height: 8 },
-    { x: 672, y: 625, width: 48, height: 8 },
+    { x: 275, y: 144, width: 8, height: 46 },
+    { x: 275, y: 324, width: 8, height: 44 },
+    { x: 275, y: 492, width: 8, height: 44 },
+    { x: 275, y: 672, width: 8, height: 44 },
+    { x: 387, y: 198, width: 8, height: 46 },
+    { x: 387, y: 406, width: 8, height: 74 },
+    { x: 387, y: 642, width: 8, height: 46 },
+    { x: 505, y: 198, width: 8, height: 46 },
+    { x: 505, y: 406, width: 8, height: 74 },
+    { x: 505, y: 642, width: 8, height: 46 },
+    { x: 617, y: 144, width: 8, height: 46 },
+    { x: 617, y: 324, width: 8, height: 44 },
+    { x: 617, y: 492, width: 8, height: 44 },
+    { x: 617, y: 672, width: 8, height: 44 },
+    { x: 168, y: 211, width: 48, height: 8 },
+    { x: 136, y: 355, width: 48, height: 8 },
+    { x: 136, y: 515, width: 48, height: 8 },
+    { x: 168, y: 671, width: 48, height: 8 },
+    { x: 684, y: 211, width: 48, height: 8 },
+    { x: 716, y: 355, width: 48, height: 8 },
+    { x: 716, y: 515, width: 48, height: 8 },
+    { x: 684, y: 671, width: 48, height: 8 },
   ],
   spawnZones: {
     red: [
-      { x: 62, y: 74, width: 238, height: 112 },
+      { x: 62, y: 74, width: 170, height: 96 },
     ],
     blue: [
-      { x: 600, y: 74, width: 238, height: 112 },
+      { x: 668, y: 74, width: 170, height: 96 },
     ],
     green: [
-      { x: 62, y: 674, width: 238, height: 112 },
+      { x: 62, y: 690, width: 170, height: 96 },
     ],
     gold: [
-      { x: 600, y: 674, width: 238, height: 112 },
+      { x: 668, y: 690, width: 170, height: 96 },
     ],
   },
 });
 
 const roomPickupZones = [
-  { x: 62, y: 74, width: 238, height: 112 },
-  { x: 62, y: 270, width: 238, height: 106 },
-  { x: 62, y: 468, width: 238, height: 112 },
-  { x: 62, y: 674, width: 238, height: 112 },
-  { x: 600, y: 74, width: 238, height: 112 },
-  { x: 600, y: 270, width: 238, height: 106 },
-  { x: 600, y: 468, width: 238, height: 112 },
-  { x: 600, y: 674, width: 238, height: 112 },
-  { x: 396, y: 78, width: 108, height: 116 },
-  { x: 396, y: 672, width: 108, height: 116 },
+  { x: 62, y: 74, width: 170, height: 96 },
+  { x: 80, y: 252, width: 160, height: 78 },
+  { x: 84, y: 390, width: 168, height: 88 },
+  { x: 80, y: 548, width: 160, height: 82 },
+  { x: 62, y: 690, width: 170, height: 96 },
+  { x: 668, y: 74, width: 170, height: 96 },
+  { x: 660, y: 252, width: 160, height: 78 },
+  { x: 648, y: 390, width: 168, height: 88 },
+  { x: 660, y: 548, width: 160, height: 82 },
+  { x: 668, y: 690, width: 170, height: 96 },
+  { x: 414, y: 82, width: 72, height: 88 },
+  { x: 414, y: 390, width: 72, height: 96 },
+  { x: 414, y: 696, width: 72, height: 88 },
 ].map(scaleRoomRect);
+
+const roomBlueprintSites = [
+  {
+    label: "BOMB\nSITE A",
+    rect: scaleRoomRect({ x: 112, y: 382, width: 156, height: 118 }),
+  },
+  {
+    label: "BOMB\nSITE B",
+    rect: scaleRoomRect({ x: 632, y: 382, width: 156, height: 118 }),
+  },
+  {
+    label: "BOMB\nSITE C",
+    rect: scaleRoomRect({ x: 112, y: 528, width: 156, height: 102 }),
+  },
+  {
+    label: "BOMB\nSITE D",
+    rect: scaleRoomRect({ x: 632, y: 528, width: 156, height: 102 }),
+  },
+];
+
+const roomBlueprintLabels = [
+  { text: "MAIN HALL", point: scaleRoomPoint({ x: 450, y: 456 }) },
+  { text: "NORTH DEEP HALL", point: scaleRoomPoint({ x: 450, y: 116 }) },
+  { text: "SOUTH DEEP HALL", point: scaleRoomPoint({ x: 450, y: 748 }) },
+  { text: "FIRST BREACH", point: scaleRoomPoint({ x: 326, y: 188 }) },
+  { text: "SECOND BREACH", point: scaleRoomPoint({ x: 574, y: 188 }) },
+  { text: "UTILITY ROOMS", point: scaleRoomPoint({ x: 450, y: 626 }) },
+];
+
+const roomBlueprintEntries = [
+  { text: "RED ENTRY", point: scaleRoomPoint({ x: 62, y: 88 }), align: "left" },
+  { text: "BLUE ENTRY", point: scaleRoomPoint({ x: 838, y: 88 }), align: "right" },
+  { text: "GREEN ENTRY", point: scaleRoomPoint({ x: 62, y: 830 }), align: "left" },
+  { text: "GOLD ENTRY", point: scaleRoomPoint({ x: 838, y: 830 }), align: "right" },
+];
+
+const roomBlueprintRoutes = [
+  [
+    scaleRoomPoint({ x: 86, y: 126 }),
+    scaleRoomPoint({ x: 188, y: 126 }),
+    scaleRoomPoint({ x: 280, y: 168 }),
+    scaleRoomPoint({ x: 336, y: 220 }),
+    scaleRoomPoint({ x: 450, y: 220 }),
+    scaleRoomPoint({ x: 620, y: 168 }),
+    scaleRoomPoint({ x: 768, y: 168 }),
+  ],
+  [
+    scaleRoomPoint({ x: 814, y: 126 }),
+    scaleRoomPoint({ x: 712, y: 126 }),
+    scaleRoomPoint({ x: 620, y: 168 }),
+    scaleRoomPoint({ x: 564, y: 220 }),
+    scaleRoomPoint({ x: 450, y: 220 }),
+    scaleRoomPoint({ x: 280, y: 168 }),
+    scaleRoomPoint({ x: 132, y: 168 }),
+  ],
+  [
+    scaleRoomPoint({ x: 86, y: 744 }),
+    scaleRoomPoint({ x: 188, y: 744 }),
+    scaleRoomPoint({ x: 280, y: 692 }),
+    scaleRoomPoint({ x: 336, y: 642 }),
+    scaleRoomPoint({ x: 450, y: 642 }),
+    scaleRoomPoint({ x: 620, y: 692 }),
+    scaleRoomPoint({ x: 768, y: 692 }),
+  ],
+  [
+    scaleRoomPoint({ x: 814, y: 744 }),
+    scaleRoomPoint({ x: 712, y: 744 }),
+    scaleRoomPoint({ x: 620, y: 692 }),
+    scaleRoomPoint({ x: 564, y: 642 }),
+    scaleRoomPoint({ x: 450, y: 642 }),
+    scaleRoomPoint({ x: 280, y: 692 }),
+    scaleRoomPoint({ x: 132, y: 692 }),
+  ],
+  [
+    scaleRoomPoint({ x: 450, y: 126 }),
+    scaleRoomPoint({ x: 450, y: 286 }),
+    scaleRoomPoint({ x: 450, y: 450 }),
+    scaleRoomPoint({ x: 450, y: 614 }),
+    scaleRoomPoint({ x: 450, y: 744 }),
+  ],
+];
 
 const roomBreachRoutes = {
   red: [
     [
-      { x: 324, y: 166 },
-      { x: 418, y: 166 },
-      { x: 406, y: 234 },
-      { x: 406, y: 450 },
-      { x: 494, y: 450 },
-      { x: 562, y: 358 },
-      { x: 720, y: 348 },
-      { x: 716, y: 548 },
-      { x: 562, y: 548 },
+      { x: 180, y: 126 },
+      { x: 336, y: 168 },
+      { x: 450, y: 222 },
+      { x: 565, y: 168 },
+      { x: 740, y: 150 },
+      { x: 710, y: 292 },
+      { x: 565, y: 310 },
+      { x: 450, y: 450 },
     ],
     [
-      { x: 324, y: 546 },
-      { x: 418, y: 546 },
-      { x: 406, y: 464 },
-      { x: 406, y: 666 },
-      { x: 494, y: 666 },
-      { x: 562, y: 736 },
-      { x: 720, y: 736 },
-      { x: 716, y: 156 },
+      { x: 180, y: 126 },
+      { x: 180, y: 292 },
+      { x: 228, y: 440 },
+      { x: 336, y: 444 },
+      { x: 450, y: 444 },
+      { x: 565, y: 444 },
+      { x: 732, y: 440 },
+      { x: 724, y: 292 },
     ],
     [
-      { x: 324, y: 736 },
-      { x: 418, y: 736 },
-      { x: 406, y: 636 },
-      { x: 406, y: 450 },
-      { x: 494, y: 450 },
-      { x: 562, y: 156 },
-      { x: 720, y: 156 },
-      { x: 716, y: 348 },
+      { x: 180, y: 126 },
+      { x: 150, y: 292 },
+      { x: 150, y: 552 },
+      { x: 180, y: 700 },
+      { x: 336, y: 712 },
+      { x: 450, y: 642 },
+      { x: 565, y: 712 },
+      { x: 740, y: 734 },
     ],
   ],
   blue: [
     [
-      { x: 576, y: 166 },
-      { x: 482, y: 166 },
-      { x: 494, y: 234 },
-      { x: 494, y: 450 },
-      { x: 406, y: 450 },
-      { x: 338, y: 358 },
-      { x: 180, y: 348 },
-      { x: 184, y: 548 },
-      { x: 338, y: 548 },
+      { x: 720, y: 126 },
+      { x: 565, y: 168 },
+      { x: 450, y: 222 },
+      { x: 336, y: 168 },
+      { x: 160, y: 150 },
+      { x: 190, y: 292 },
+      { x: 336, y: 310 },
+      { x: 450, y: 450 },
     ],
     [
-      { x: 576, y: 546 },
-      { x: 482, y: 546 },
-      { x: 494, y: 464 },
-      { x: 494, y: 666 },
-      { x: 406, y: 666 },
-      { x: 338, y: 736 },
-      { x: 180, y: 736 },
-      { x: 184, y: 156 },
+      { x: 720, y: 126 },
+      { x: 720, y: 292 },
+      { x: 672, y: 440 },
+      { x: 565, y: 444 },
+      { x: 450, y: 444 },
+      { x: 336, y: 444 },
+      { x: 168, y: 440 },
+      { x: 176, y: 292 },
     ],
     [
-      { x: 576, y: 736 },
-      { x: 482, y: 736 },
-      { x: 494, y: 636 },
-      { x: 494, y: 450 },
-      { x: 406, y: 450 },
-      { x: 338, y: 156 },
-      { x: 180, y: 156 },
-      { x: 184, y: 348 },
+      { x: 720, y: 126 },
+      { x: 750, y: 292 },
+      { x: 750, y: 552 },
+      { x: 720, y: 700 },
+      { x: 565, y: 712 },
+      { x: 450, y: 642 },
+      { x: 336, y: 712 },
+      { x: 160, y: 734 },
     ],
   ],
   green: [
     [
-      { x: 324, y: 736 },
-      { x: 418, y: 736 },
-      { x: 406, y: 666 },
-      { x: 406, y: 450 },
-      { x: 494, y: 450 },
-      { x: 562, y: 548 },
-      { x: 720, y: 548 },
-      { x: 716, y: 348 },
+      { x: 180, y: 744 },
+      { x: 336, y: 712 },
+      { x: 450, y: 642 },
+      { x: 565, y: 712 },
+      { x: 740, y: 734 },
+      { x: 710, y: 568 },
+      { x: 565, y: 552 },
+      { x: 450, y: 450 },
     ],
     [
-      { x: 324, y: 546 },
-      { x: 418, y: 546 },
-      { x: 406, y: 464 },
-      { x: 406, y: 234 },
-      { x: 494, y: 234 },
-      { x: 562, y: 156 },
-      { x: 720, y: 156 },
+      { x: 180, y: 744 },
+      { x: 180, y: 568 },
+      { x: 228, y: 440 },
+      { x: 336, y: 444 },
+      { x: 450, y: 444 },
+      { x: 565, y: 444 },
+      { x: 732, y: 440 },
+      { x: 724, y: 568 },
     ],
     [
-      { x: 324, y: 736 },
-      { x: 180, y: 736 },
-      { x: 184, y: 548 },
-      { x: 338, y: 548 },
-      { x: 450, y: 666 },
-      { x: 562, y: 736 },
-      { x: 720, y: 736 },
+      { x: 180, y: 744 },
+      { x: 150, y: 568 },
+      { x: 150, y: 392 },
+      { x: 180, y: 252 },
+      { x: 336, y: 170 },
+      { x: 450, y: 222 },
+      { x: 565, y: 170 },
+      { x: 740, y: 150 },
     ],
   ],
   gold: [
     [
-      { x: 576, y: 736 },
-      { x: 482, y: 736 },
-      { x: 494, y: 666 },
-      { x: 494, y: 450 },
-      { x: 406, y: 450 },
-      { x: 338, y: 548 },
-      { x: 180, y: 548 },
-      { x: 184, y: 348 },
+      { x: 720, y: 744 },
+      { x: 565, y: 712 },
+      { x: 450, y: 642 },
+      { x: 336, y: 712 },
+      { x: 160, y: 734 },
+      { x: 190, y: 568 },
+      { x: 336, y: 552 },
+      { x: 450, y: 450 },
     ],
     [
-      { x: 576, y: 546 },
-      { x: 482, y: 546 },
-      { x: 494, y: 464 },
-      { x: 494, y: 234 },
-      { x: 406, y: 234 },
-      { x: 338, y: 156 },
-      { x: 180, y: 156 },
+      { x: 720, y: 744 },
+      { x: 720, y: 568 },
+      { x: 672, y: 440 },
+      { x: 565, y: 444 },
+      { x: 450, y: 444 },
+      { x: 336, y: 444 },
+      { x: 168, y: 440 },
+      { x: 176, y: 568 },
     ],
     [
-      { x: 576, y: 736 },
-      { x: 720, y: 736 },
-      { x: 716, y: 548 },
-      { x: 562, y: 548 },
-      { x: 450, y: 666 },
-      { x: 338, y: 736 },
-      { x: 180, y: 736 },
+      { x: 720, y: 744 },
+      { x: 750, y: 568 },
+      { x: 750, y: 392 },
+      { x: 720, y: 252 },
+      { x: 565, y: 170 },
+      { x: 450, y: 222 },
+      { x: 336, y: 170 },
+      { x: 160, y: 150 },
     ],
   ],
 };
@@ -2308,16 +2414,142 @@ function drawRoomDoor(door) {
     context.lineTo(corners[index].x, corners[index].y);
   }
   context.closePath();
-  context.fillStyle = "#9a7647";
+  context.fillStyle = "#7b8d99";
   context.fill();
-  context.strokeStyle = "rgba(255, 223, 145, 0.42)";
+  context.strokeStyle = "rgba(28, 56, 72, 0.6)";
   context.lineWidth = 2;
   context.stroke();
 
   context.beginPath();
   context.arc(hinge.x, hinge.y, 4, 0, Math.PI * 2);
-  context.fillStyle = "#f0bd6a";
+  context.fillStyle = "#2c6075";
   context.fill();
+  context.restore();
+}
+
+function drawBlueprintGrid(bounds) {
+  context.fillStyle = "#dbe8ee";
+  context.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+
+  context.save();
+  context.beginPath();
+  context.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+  context.clip();
+
+  for (let stepIndex = 0; stepIndex < 2; stepIndex += 1) {
+    const spacing = stepIndex === 0 ? 12 : 60;
+    context.strokeStyle = stepIndex === 0
+      ? "rgba(49, 83, 101, 0.14)"
+      : "rgba(49, 83, 101, 0.28)";
+    context.lineWidth = stepIndex === 0 ? 0.7 : 1.2;
+
+    for (let x = bounds.x; x <= bounds.x + bounds.width; x += spacing) {
+      context.beginPath();
+      context.moveTo(x, bounds.y);
+      context.lineTo(x, bounds.y + bounds.height);
+      context.stroke();
+    }
+
+    for (let y = bounds.y; y <= bounds.y + bounds.height; y += spacing) {
+      context.beginPath();
+      context.moveTo(bounds.x, y);
+      context.lineTo(bounds.x + bounds.width, y);
+      context.stroke();
+    }
+  }
+
+  context.restore();
+}
+
+function drawBlueprintSite(site) {
+  const { rect } = site;
+  context.save();
+  context.fillStyle = "rgba(245, 249, 250, 0.72)";
+  context.fillRect(rect.x, rect.y, rect.width, rect.height);
+  context.strokeStyle = "rgba(32, 62, 78, 0.4)";
+  context.lineWidth = 2;
+  context.setLineDash([8, 6]);
+  context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+  context.setLineDash([]);
+
+  context.fillStyle = "rgba(28, 56, 72, 0.9)";
+  context.font = "900 24px system-ui, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  const lines = site.label.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    context.fillText(lines[index], rect.x + rect.width / 2, rect.y + rect.height / 2 - 16 + index * 30);
+  }
+  context.restore();
+}
+
+function drawBlueprintArrow(points) {
+  if (points.length < 2) {
+    return;
+  }
+
+  context.save();
+  context.strokeStyle = "rgba(40, 136, 86, 0.7)";
+  context.fillStyle = "rgba(40, 136, 86, 0.76)";
+  context.lineWidth = 5;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.beginPath();
+  context.moveTo(points[0].x, points[0].y);
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const midX = (previous.x + point.x) / 2;
+    const midY = (previous.y + point.y) / 2;
+    context.quadraticCurveTo(previous.x, previous.y, midX, midY);
+  }
+
+  const end = points[points.length - 1];
+  context.lineTo(end.x, end.y);
+  context.stroke();
+
+  const beforeEnd = points[points.length - 2];
+  const angle = Math.atan2(end.y - beforeEnd.y, end.x - beforeEnd.x);
+  context.beginPath();
+  context.moveTo(end.x, end.y);
+  context.lineTo(end.x - Math.cos(angle - 0.52) * 18, end.y - Math.sin(angle - 0.52) * 18);
+  context.lineTo(end.x - Math.cos(angle + 0.52) * 18, end.y - Math.sin(angle + 0.52) * 18);
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+function drawBlueprintAnnotations(bounds) {
+  for (const site of roomBlueprintSites) {
+    drawBlueprintSite(site);
+  }
+
+  for (const route of roomBlueprintRoutes) {
+    drawBlueprintArrow(route);
+  }
+
+  context.save();
+  context.fillStyle = "rgba(32, 62, 78, 0.76)";
+  context.font = "800 12px system-ui, sans-serif";
+  context.textBaseline = "middle";
+
+  for (const label of roomBlueprintLabels) {
+    context.textAlign = "center";
+    context.fillText(label.text, label.point.x, label.point.y);
+  }
+
+  context.fillStyle = "rgba(158, 57, 57, 0.82)";
+  context.font = "900 12px system-ui, sans-serif";
+  for (const entry of roomBlueprintEntries) {
+    context.textAlign = entry.align;
+    context.fillText(entry.text, entry.point.x, entry.point.y);
+  }
+
+  context.textAlign = "right";
+  context.fillStyle = "rgba(32, 62, 78, 0.82)";
+  context.font = "900 11px system-ui, sans-serif";
+  context.fillText("TACTICAL CQB PLAN / REV. 02", bounds.x + bounds.width - 18, bounds.y + bounds.height - 18);
   context.restore();
 }
 
@@ -2326,32 +2558,17 @@ function drawRoomMap() {
   const { bounds } = roomMap;
 
   context.save();
-  context.fillStyle = "rgba(11, 15, 24, 0.92)";
-  context.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
-
-  context.strokeStyle = "rgba(255, 255, 255, 0.07)";
-  context.lineWidth = 1;
-  for (let x = bounds.x + 90; x < bounds.x + bounds.width; x += 90) {
-    context.beginPath();
-    context.moveTo(x, bounds.y);
-    context.lineTo(x, bounds.y + bounds.height);
-    context.stroke();
-  }
-  for (let y = bounds.y + 90; y < bounds.y + bounds.height; y += 90) {
-    context.beginPath();
-    context.moveTo(bounds.x, y);
-    context.lineTo(bounds.x + bounds.width, y);
-    context.stroke();
-  }
+  drawBlueprintGrid(bounds);
+  drawBlueprintAnnotations(bounds);
 
   context.lineWidth = 6;
-  context.strokeStyle = "rgba(255, 255, 255, 0.58)";
+  context.strokeStyle = "rgba(38, 68, 84, 0.8)";
   context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
 
   for (const wall of roomMap.walls) {
-    context.fillStyle = "#3f4758";
+    context.fillStyle = "#536879";
     context.fillRect(wall.x, wall.y, wall.width, wall.height);
-    context.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    context.strokeStyle = "rgba(24, 47, 60, 0.45)";
     context.lineWidth = 2;
     context.strokeRect(wall.x, wall.y, wall.width, wall.height);
   }
@@ -2814,12 +3031,11 @@ function drawRoomCharacter(ball) {
 
   context.drawImage(image, -width / 2, -height / 2, width, height);
 
-  if (ball.team === "green" || ball.team === "gold") {
-    context.globalCompositeOperation = "source-atop";
-    context.fillStyle = colorWithAlpha(config.color, 0.24);
-    context.fillRect(-width / 2, -height / 2, width, height);
-    context.globalCompositeOperation = "source-over";
-  }
+  context.fillStyle = colorWithAlpha(config.color, 0.86);
+  context.strokeStyle = "rgba(8, 10, 16, 0.72)";
+  context.lineWidth = 1.5;
+  context.fillRect(-width * 0.22, -height * 0.36, width * 0.44, height * 0.16);
+  context.strokeRect(-width * 0.22, -height * 0.36, width * 0.44, height * 0.16);
   context.restore();
 
   context.beginPath();

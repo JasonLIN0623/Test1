@@ -67,7 +67,42 @@ const pickupLifetime = 10;
 const weaponReadyDelay = 1;
 const speedBoostDuration = 4;
 const speedBoostMultiplier = 1.45;
-const roomMap = {
+const roomScale = 1.12;
+const roomScaleCenter = { x: 450, y: 450 };
+
+function scaleRoomNumber(value, axis) {
+  return Math.round(roomScaleCenter[axis] + (value - roomScaleCenter[axis]) * roomScale);
+}
+
+function scaleRoomRect(rect) {
+  return {
+    x: scaleRoomNumber(rect.x, "x"),
+    y: scaleRoomNumber(rect.y, "y"),
+    width: Math.round(rect.width * roomScale),
+    height: Math.round(rect.height * roomScale),
+  };
+}
+
+function scaleRoomPoint(point) {
+  return {
+    x: scaleRoomNumber(point.x, "x"),
+    y: scaleRoomNumber(point.y, "y"),
+  };
+}
+
+function scaleRoomMap(map) {
+  return {
+    bounds: scaleRoomRect(map.bounds),
+    walls: map.walls.map(scaleRoomRect),
+    doors: map.doors.map(scaleRoomRect),
+    spawnZones: {
+      red: map.spawnZones.red.map(scaleRoomRect),
+      blue: map.spawnZones.blue.map(scaleRoomRect),
+    },
+  };
+}
+
+const roomMap = scaleRoomMap({
   bounds: { x: 90, y: 105, width: 720, height: 690 },
   walls: [
     { x: 438, y: 105, width: 24, height: 260 },
@@ -92,7 +127,7 @@ const roomMap = {
       { x: 560, y: 610, width: 210, height: 140 },
     ],
   },
-};
+});
 
 const roomPickupZones = [
   { x: 130, y: 140, width: 210, height: 145 },
@@ -101,7 +136,26 @@ const roomPickupZones = [
   { x: 560, y: 370, width: 210, height: 140 },
   { x: 130, y: 610, width: 210, height: 140 },
   { x: 560, y: 610, width: 210, height: 140 },
-];
+].map(scaleRoomRect);
+
+const roomBreachRoutes = {
+  red: [
+    { x: 286, y: 333 },
+    { x: 395, y: 430 },
+    { x: 515, y: 565 },
+    { x: 650, y: 685 },
+    { x: 650, y: 215 },
+  ],
+  blue: [
+    { x: 614, y: 567 },
+    { x: 505, y: 430 },
+    { x: 385, y: 333 },
+    { x: 250, y: 215 },
+    { x: 250, y: 685 },
+  ],
+};
+roomBreachRoutes.red = roomBreachRoutes.red.map(scaleRoomPoint);
+roomBreachRoutes.blue = roomBreachRoutes.blue.map(scaleRoomPoint);
 
 const audioState = {
   context: null,
@@ -605,6 +659,36 @@ function moveRoomAction(ball, action, point, speed, deltaSeconds, duration = 1) 
   keepRoomSpacing(ball, deltaSeconds);
 }
 
+function getRoomSquadEntryPoint(ball) {
+  const route = roomBreachRoutes[ball.team];
+  const waypointIndex = clamp(ball.roomWaypointIndex ?? 0, 0, route.length - 1);
+  const objective = route[waypointIndex];
+  const nextObjective = route[Math.min(waypointIndex + 1, route.length - 1)] ?? objective;
+  const forward = normalizeVector(nextObjective.x - objective.x, nextObjective.y - objective.y);
+  const side = normalizeVector(-forward.y, forward.x);
+  const lane = (ball.squadIndex % 4) - 1.5;
+  const file = Math.floor(ball.squadIndex / 4);
+
+  return {
+    x: objective.x + side.x * lane * 24 - forward.x * file * 30,
+    y: objective.y + side.y * lane * 24 - forward.y * file * 30,
+  };
+}
+
+function updateRoomSquadWaypoint(ball) {
+  const route = roomBreachRoutes[ball.team];
+
+  if (!route || ball.roomWaypointIndex >= route.length - 1) {
+    return;
+  }
+
+  const objective = route[ball.roomWaypointIndex];
+  if (distanceBetween(ball, objective) < 58) {
+    ball.roomWaypointIndex += 1;
+    ball.awarenessTimer = 0;
+  }
+}
+
 function chooseRoomCoverPoint(ball) {
   const points = getRoomCoverPoints();
   const scoredPoints = points.map((point) => {
@@ -894,6 +978,11 @@ function bothRoomTeamsHaveWeapons() {
   return teamHasWeapon("red") && teamHasWeapon("blue");
 }
 
+function getRoomStartingWeapon(index) {
+  const loadout = ["pistol", "shotgun", "machineGun", "sniper"];
+  return loadout[index % loadout.length];
+}
+
 function unlockAudio() {
   if (!audioState.context) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1148,6 +1237,7 @@ function resizeCanvas() {
 
 function createBall(team, index, total) {
   const roomSpawn = isRoomMode() ? randomPointInRoomMap(34, team) : null;
+  const startingWeaponType = isRoomMode() ? getRoomStartingWeapon(index) : null;
   const angle = (Math.PI * 2 * index) / total + (team === "red" ? 0 : Math.PI);
   const spread = randomBetween(90, 250);
   const x = roomSpawn?.x ?? state.arena.x + Math.cos(angle) * spread;
@@ -1170,8 +1260,10 @@ function createBall(team, index, total) {
     radius: randomBetween(15, 19),
     health: maxHealth,
     hitTimer: randomBetween(0, hitCooldown),
-    weapon: null,
-    weaponCooldown: randomBetween(0, 0.5),
+    weapon: startingWeaponType
+      ? { type: startingWeaponType, ammo: weaponConfig[startingWeaponType].ammo }
+      : null,
+    weaponCooldown: isRoomMode() ? weaponReadyDelay : randomBetween(0, 0.5),
     shieldCharges: 0,
     speedBoostTimer: 0,
     alive: true,
@@ -1179,6 +1271,8 @@ function createBall(team, index, total) {
     awarenessTimer: randomBetween(0, 0.6),
     ambushMode: false,
     roomAction: "patrol",
+    squadIndex: index,
+    roomWaypointIndex: 0,
     strafeSide: Math.random() < 0.5 ? -1 : 1,
     strafeTimer: randomBetween(0.8, 1.8),
     patrolPoint: roomSpawn ? randomPointInRoomMap(34) : null,
@@ -1205,7 +1299,7 @@ function resetGame() {
     state.balls.push(createBall("blue", index, ballCount));
   }
 
-  if (isRoomMode()) {
+  if (isRoomMode() && !bothRoomTeamsHaveWeapons()) {
     seedRoomPickups();
   }
 
@@ -1643,12 +1737,8 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
     return;
   }
 
-  if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 44 || ball.awarenessTimer <= 0) {
-    setRoomAction(ball, "patrol", chooseRoomPatrolPoint(ball), randomBetween(1.4, 2.7));
-  }
-
-  moveRoomBallToward(ball, ball.patrolPoint, 122, deltaSeconds);
-  keepRoomSpacing(ball, deltaSeconds);
+  updateRoomSquadWaypoint(ball);
+  moveRoomAction(ball, "breach", getRoomSquadEntryPoint(ball), 126, deltaSeconds, 1.2);
 }
 
 function steerTowardTargets(deltaSeconds) {
@@ -1861,6 +1951,54 @@ function checkWinner() {
   playSound("win");
 }
 
+function drawRoomDoor(door) {
+  const orientation = door.orientation ?? (door.height > door.width ? "vertical" : "horizontal");
+  const closedX = door.closedX ?? door.x;
+  const closedY = door.closedY ?? door.y;
+  const closedWidth = door.closedWidth ?? door.width;
+  const closedHeight = door.closedHeight ?? door.height;
+  const openDirection = door.openDirection || 1;
+  const closedCenter = {
+    x: closedX + closedWidth / 2,
+    y: closedY + closedHeight / 2,
+  };
+  const hinge = orientation === "vertical"
+    ? {
+      x: openDirection > 0 ? closedX : closedX + closedWidth,
+      y: closedCenter.y,
+    }
+    : {
+      x: closedCenter.x,
+      y: openDirection > 0 ? closedY : closedY + closedHeight,
+    };
+  const swingRadius = Math.max(closedWidth, closedHeight);
+  const baseAngle = orientation === "vertical" ? -Math.PI / 2 : 0;
+  const endAngle = orientation === "vertical"
+    ? baseAngle + openDirection * (door.openAmount ?? 0) * Math.PI / 2
+    : baseAngle - openDirection * (door.openAmount ?? 0) * Math.PI / 2;
+
+  context.save();
+  context.strokeStyle = "rgba(255, 209, 102, 0.16)";
+  context.lineWidth = 1.5;
+  context.setLineDash([5, 7]);
+  context.beginPath();
+  context.arc(hinge.x, hinge.y, swingRadius, baseAngle, endAngle, openDirection < 0);
+  context.stroke();
+  context.setLineDash([]);
+
+  context.fillStyle = "#9a7647";
+  context.fillRect(door.x, door.y, door.width, door.height);
+  context.strokeStyle = "rgba(255, 223, 145, 0.42)";
+  context.lineWidth = 2;
+  context.strokeRect(door.x, door.y, door.width, door.height);
+
+  context.beginPath();
+  context.arc(hinge.x, hinge.y, 4, 0, Math.PI * 2);
+  context.fillStyle = "#f0bd6a";
+  context.fill();
+  context.restore();
+}
+
 function drawRoomMap() {
   context.clearRect(0, 0, 900, 900);
   const { bounds } = roomMap;
@@ -1897,11 +2035,7 @@ function drawRoomMap() {
   }
 
   for (const door of getRoomDoors()) {
-    context.fillStyle = "#8b6f45";
-    context.fillRect(door.x, door.y, door.width, door.height);
-    context.strokeStyle = "rgba(255, 209, 102, 0.28)";
-    context.lineWidth = 2;
-    context.strokeRect(door.x, door.y, door.width, door.height);
+    drawRoomDoor(door);
   }
 
   context.restore();

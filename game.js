@@ -1048,7 +1048,11 @@ function updateRoomSquadWaypoint(ball) {
     const nextObjective = route[Math.min(ball.roomWaypointIndex, route.length - 1)];
     const scanDirection = normalizeVector(nextObjective.x - ball.x, nextObjective.y - ball.y);
     ball.lookAngle = Math.atan2(scanDirection.y, scanDirection.x);
-    ball.stopTimer = Math.max(ball.stopTimer ?? 0, randomBetween(0.18, 0.42));
+    ball.scanBaseAngle = ball.lookAngle;
+    ball.scanDuration = randomBetween(0.36, 0.68);
+    ball.scanTimer = ball.scanDuration;
+    ball.scanSide = ball.scanSide * -1 || (Math.random() < 0.5 ? -1 : 1);
+    ball.stopTimer = Math.max(ball.stopTimer ?? 0, ball.scanDuration);
     ball.awarenessTimer = 0;
   }
 }
@@ -1658,6 +1662,10 @@ function createBall(team, index, total) {
     alive: true,
     targetId: null,
     lookAngle: Math.atan2(direction.y, direction.x),
+    scanBaseAngle: Math.atan2(direction.y, direction.x),
+    scanDuration: 0,
+    scanTimer: 0,
+    scanSide: Math.random() < 0.5 ? -1 : 1,
     awarenessTimer: randomBetween(0, 0.6),
     ambushMode: false,
     roomAction: "patrol",
@@ -2159,6 +2167,24 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
   moveRoomAction(ball, "breach", getRoomSquadEntryPoint(ball), 126, deltaSeconds, 1.2);
 }
 
+function updateRoomScan(ball, deltaSeconds, hasTarget) {
+  if (hasTarget) {
+    ball.scanTimer = 0;
+    return;
+  }
+
+  ball.scanTimer = Math.max(0, (ball.scanTimer ?? 0) - deltaSeconds);
+
+  if (ball.scanTimer <= 0 || !Number.isFinite(ball.scanBaseAngle)) {
+    return;
+  }
+
+  const duration = Math.max(0.1, ball.scanDuration ?? 0.45);
+  const progress = 1 - (ball.scanTimer / duration);
+  const sweep = Math.sin(progress * Math.PI * 2) * 0.78 * (ball.scanSide || 1);
+  ball.lookAngle = ball.scanBaseAngle + sweep;
+}
+
 function steerTowardTargets(deltaSeconds) {
   const speedModifier = Number(speedInput.value) / 100;
 
@@ -2175,6 +2201,7 @@ function steerTowardTargets(deltaSeconds) {
     ball.vy *= 1 - 0.012 * deltaSeconds;
 
     if (isRoomMode()) {
+      updateRoomScan(ball, deltaSeconds, Boolean(target));
       applyRoomAwareness(ball, target, deltaSeconds);
     }
 

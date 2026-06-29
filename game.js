@@ -78,9 +78,9 @@ const roomMap = {
     { x: 564, y: 556, width: 246, height: 22 },
   ],
   doors: [
-    { x: 438, y: 398, width: 24, height: 72 },
-    { x: 300, y: 322, width: 56, height: 22 },
-    { x: 544, y: 556, width: 56, height: 22 },
+    { x: 445, y: 398, width: 10, height: 72 },
+    { x: 300, y: 328, width: 56, height: 10 },
+    { x: 544, y: 562, width: 56, height: 10 },
   ],
   spawnZones: {
     red: [
@@ -123,6 +123,37 @@ const gunshotPlaybackConfig = {
   shotgun: { offset: 0.1, duration: 0.55, volume: 0.4, playbackRate: 1 },
   sniper: { offset: 0.42, duration: 0.7, volume: 0.38, playbackRate: 0.96 },
   machineGun: { offset: 2.28, duration: 0.24, volume: 0.26, playbackRate: 1.12 },
+};
+
+const roomAssetFiles = {
+  weapons: {
+    pistol: "assets/images/room/weapons/pistol.png",
+    shotgun: "assets/images/room/weapons/shotgun.png",
+    sniper: "assets/images/room/weapons/sniper.png",
+    machineGun: "assets/images/room/weapons/machine-gun.png",
+  },
+  characters: {
+    red: {
+      stand: "assets/images/room/characters/red-stand.png",
+      gun: "assets/images/room/characters/red-gun.png",
+      sniper: "assets/images/room/characters/red-sniper.png",
+      machineGun: "assets/images/room/characters/red-machine.png",
+    },
+    blue: {
+      stand: "assets/images/room/characters/blue-stand.png",
+      gun: "assets/images/room/characters/blue-gun.png",
+      sniper: "assets/images/room/characters/blue-sniper.png",
+      machineGun: "assets/images/room/characters/blue-machine.png",
+    },
+  },
+};
+
+const roomAssets = {
+  weapons: {},
+  characters: {
+    red: {},
+    blue: {},
+  },
 };
 
 const weaponConfig = {
@@ -240,26 +271,80 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function loadImageAsset(src) {
+  const image = new Image();
+  image.onload = () => drawGame();
+  image.src = src;
+  return image;
+}
+
+function loadRoomAssets() {
+  for (const [type, src] of Object.entries(roomAssetFiles.weapons)) {
+    roomAssets.weapons[type] = loadImageAsset(src);
+  }
+
+  for (const [team, variants] of Object.entries(roomAssetFiles.characters)) {
+    for (const [variant, src] of Object.entries(variants)) {
+      roomAssets.characters[team][variant] = loadImageAsset(src);
+    }
+  }
+}
+
 function isRoomMode() {
   return state.battleMode === "room";
 }
 
 function createRoomDoors() {
   return roomMap.doors.map((door, index) => {
-    const pushAxis = door.height > door.width ? "x" : "y";
-    const travel = pushAxis === "y" ? 66 : 72;
-
-    return {
+    const orientation = door.height > door.width ? "vertical" : "horizontal";
+    const roomDoor = {
       ...door,
       id: `door-${index}`,
-      baseX: door.x,
-      baseY: door.y,
-      pushAxis,
-      minPosition: door[pushAxis] - travel,
-      maxPosition: door[pushAxis] + travel,
-      velocity: 0,
+      closedX: door.x,
+      closedY: door.y,
+      closedWidth: door.width,
+      closedHeight: door.height,
+      orientation,
+      openAmount: 0,
+      openVelocity: 0,
+      openDirection: index % 2 === 0 ? 1 : -1,
     };
+
+    updateRoomDoorRect(roomDoor);
+    return roomDoor;
   });
+}
+
+function lerp(start, end, amount) {
+  return start + (end - start) * amount;
+}
+
+function updateRoomDoorRect(door) {
+  const amount = clamp(door.openAmount, 0, 1);
+  const direction = door.openDirection || 1;
+
+  if (door.orientation === "vertical") {
+    const openX = direction > 0
+      ? door.closedX
+      : door.closedX - door.closedHeight + door.closedWidth;
+    const openY = door.closedY + (door.closedHeight - door.closedWidth) / 2;
+
+    door.x = lerp(door.closedX, openX, amount);
+    door.y = lerp(door.closedY, openY, amount);
+    door.width = lerp(door.closedWidth, door.closedHeight, amount);
+    door.height = lerp(door.closedHeight, door.closedWidth, amount);
+    return;
+  }
+
+  const openX = door.closedX + (door.closedWidth - door.closedHeight) / 2;
+  const openY = direction > 0
+    ? door.closedY
+    : door.closedY - door.closedWidth + door.closedHeight;
+
+  door.x = lerp(door.closedX, openX, amount);
+  door.y = lerp(door.closedY, openY, amount);
+  door.width = lerp(door.closedWidth, door.closedHeight, amount);
+  door.height = lerp(door.closedHeight, door.closedWidth, amount);
 }
 
 function getRoomDoors() {
@@ -429,6 +514,36 @@ function getVisibleEnemiesFromPoint(point, team) {
   });
 }
 
+function isPointVisibleToEnemies(point, team, maxDistance = 430) {
+  return state.balls.some((ball) => {
+    return ball.alive
+      && ball.team !== team
+      && distanceBetween(ball, point) <= maxDistance
+      && hasLineOfSight(ball, point);
+  });
+}
+
+function findPriorityWeaponPickup(ball) {
+  const weaponPickups = state.pickups.filter((pickup) => weaponConfig[pickup.type]);
+
+  if (weaponPickups.length === 0) {
+    return null;
+  }
+
+  return weaponPickups
+    .map((pickup) => {
+      const distance = distanceBetween(ball, pickup);
+      const visibilityPenalty = hasLineOfSight(ball, pickup) ? 0 : 120;
+      const enemySightPenalty = isPointVisibleToEnemies(pickup, ball.team, 360) ? 60 : 0;
+
+      return {
+        pickup,
+        score: distance + visibilityPenalty + enemySightPenalty,
+      };
+    })
+    .sort((a, b) => a.score - b.score)[0].pickup;
+}
+
 function chooseRoomCoverPoint(ball) {
   const points = getRoomCoverPoints();
   const scoredPoints = points.map((point) => {
@@ -453,13 +568,41 @@ function chooseRoomAmbushPoint(ball) {
       return Math.min(closest, distanceBetween(point, enemy));
     }, Infinity);
     const visibleEnemies = getVisibleEnemiesFromPoint(point, ball.team).length;
+    const exposedPenalty = isPointVisibleToEnemies(point, ball.team) ? 800 : 0;
     const midRangeBonus = Math.abs(closestEnemyDistance - 190);
-    const score = visibleEnemies * 260 + midRangeBonus + distanceBetween(ball, point) * 0.25 + Math.random() * 20;
+    const score = exposedPenalty + visibleEnemies * 260 + midRangeBonus + distanceBetween(ball, point) * 0.25 + Math.random() * 20;
 
     return { point, score };
   }).sort((a, b) => a.score - b.score);
 
   return scoredPoints[0]?.point ?? chooseRoomCoverPoint(ball);
+}
+
+function chooseRoomEscapePoint(ball) {
+  const sampledPoints = [];
+  for (let index = 0; index < 40; index += 1) {
+    sampledPoints.push(randomPointInRoomMap(34));
+  }
+
+  const points = [...getRoomCoverPoints(), ...sampledPoints];
+  const hiddenPoints = points.filter((point) => !isPointVisibleToEnemies(point, ball.team));
+  const candidatePoints = hiddenPoints.length > 0 ? hiddenPoints : points;
+  const enemies = state.balls.filter((candidate) => candidate.alive && candidate.team !== ball.team);
+  const scoredPoints = candidatePoints.map((point) => {
+    const visibleToEnemy = isPointVisibleToEnemies(point, ball.team);
+    const closestEnemyDistance = enemies.reduce((closest, enemy) => {
+      return Math.min(closest, distanceBetween(point, enemy));
+    }, Infinity);
+    const distanceFromBall = distanceBetween(ball, point);
+    const score = (visibleToEnemy ? 1200 : 0)
+      + distanceFromBall * 0.45
+      - Math.min(closestEnemyDistance, 420) * 0.55
+      + Math.random() * 18;
+
+    return { point, score };
+  }).sort((a, b) => a.score - b.score);
+
+  return scoredPoints[0]?.point ?? chooseRoomAmbushPoint(ball);
 }
 
 function lineIntersectsRect(start, end, rect) {
@@ -571,41 +714,28 @@ function pushRoomDoorFromBall(ball, door) {
     return false;
   }
 
-  const axis = door.pushAxis;
   const doorCenter = getRectCenter(door);
-  const axisVelocity = axis === "x" ? ball.vx : ball.vy;
-  let pushDirection = Math.sign(axisVelocity);
-
-  if (pushDirection === 0) {
-    pushDirection = axis === "x"
-      ? Math.sign(ball.x - doorCenter.x)
-      : Math.sign(ball.y - doorCenter.y);
-  }
-
-  if (pushDirection === 0) {
-    pushDirection = 1;
-  }
-
-  const pushDistance = clamp(Math.abs(axisVelocity) * 0.018 + collision.overlap * 0.55, 1.2, 8);
-  door[axis] = clamp(door[axis] + pushDirection * pushDistance, door.minPosition, door.maxPosition);
-  door.velocity = pushDirection * Math.max(Math.abs(door.velocity), pushDistance * 16);
-
+  const side = door.orientation === "vertical"
+    ? Math.sign(ball.x - doorCenter.x)
+    : Math.sign(ball.y - doorCenter.y);
+  door.openDirection = side || door.openDirection || 1;
+  door.openVelocity = Math.min(3.2, door.openVelocity + 1.35 + collision.overlap * 0.08);
+  door.openAmount = clamp(door.openAmount + 0.09, 0, 1);
+  updateRoomDoorRect(door);
   return resolveBallAgainstRect(ball, door, { bounce: false });
 }
 
 function updateRoomDoors(deltaSeconds) {
   for (const door of state.roomDoors) {
-    if (Math.abs(door.velocity) < 1) {
-      door.velocity = 0;
+    if (Math.abs(door.openVelocity) < 0.02) {
+      door.openVelocity = 0;
+      updateRoomDoorRect(door);
       continue;
     }
 
-    door[door.pushAxis] = clamp(
-      door[door.pushAxis] + door.velocity * deltaSeconds,
-      door.minPosition,
-      door.maxPosition,
-    );
-    door.velocity *= 0.84;
+    door.openAmount = clamp(door.openAmount + door.openVelocity * deltaSeconds, 0, 1);
+    door.openVelocity *= 0.78;
+    updateRoomDoorRect(door);
   }
 }
 
@@ -1354,13 +1484,24 @@ function applyRoomAwareness(ball, target, deltaSeconds) {
   const outnumbered = isTeamOutnumbered(ball.team);
   ball.ambushMode = outnumbered;
 
+  if (!ball.weapon) {
+    const weaponPickup = findPriorityWeaponPickup(ball);
+
+    if (weaponPickup) {
+      ball.patrolPoint = weaponPickup;
+      moveRoomBallToward(ball, weaponPickup, outnumbered ? 136 : 152, deltaSeconds);
+      keepRoomSpacing(ball, deltaSeconds);
+      return;
+    }
+  }
+
   if (outnumbered) {
     const weapon = ball.weapon ? weaponConfig[ball.weapon.type] : null;
     const canAmbush = target && weapon && distanceBetween(ball, target) <= weapon.range * 0.92;
 
     if (!canAmbush) {
       if (!ball.patrolPoint || distanceBetween(ball, ball.patrolPoint) < 34 || ball.awarenessTimer <= 0) {
-        ball.patrolPoint = chooseRoomAmbushPoint(ball);
+        ball.patrolPoint = chooseRoomEscapePoint(ball);
         ball.awarenessTimer = randomBetween(1.8, 3.2);
       }
 
@@ -1922,6 +2063,36 @@ function drawWeaponIcon(type, x, y, size, color, rotation = 0) {
   context.restore();
 }
 
+function drawRoomWeaponImage(type, x, y, size, rotation = 0) {
+  const image = roomAssets.weapons[type];
+
+  if (!image?.complete || image.naturalWidth === 0) {
+    drawWeaponIcon(type, x, y, size, weaponConfig[type]?.color ?? "#ffffff", rotation);
+    return;
+  }
+
+  const drawSizes = {
+    pistol: { width: size * 0.9, height: size * 0.48 },
+    shotgun: { width: size * 1.18, height: size * 0.48 },
+    sniper: { width: size * 1.45, height: size * 0.42 },
+    machineGun: { width: size * 1.48, height: size * 0.46 },
+  };
+  const drawSize = drawSizes[type] ?? { width: size, height: size * 0.48 };
+
+  context.save();
+  context.translate(x, y);
+  context.rotate(rotation);
+  context.imageSmoothingEnabled = false;
+  context.drawImage(
+    image,
+    -drawSize.width / 2,
+    -drawSize.height / 2,
+    drawSize.width,
+    drawSize.height,
+  );
+  context.restore();
+}
+
 function drawGearIcon(x, y, size, color) {
   context.save();
   context.translate(x, y);
@@ -1987,6 +2158,8 @@ function drawPickups() {
       drawGearIcon(0, 0, 29, config.color);
     } else if (pickup.type === "speedBoost") {
       drawAcceleratorIcon(0, 0, 30, config.color);
+    } else if (isRoomMode()) {
+      drawRoomWeaponImage(pickup.type, 0, 1, 34, -0.08);
     } else {
       drawWeaponIcon(pickup.type, 0, 1, 32, config.color, -0.08);
     }
@@ -2021,7 +2194,111 @@ function getWeaponAimAngle(ball) {
   return Math.atan2(ball.vy, ball.vx);
 }
 
+function getRoomCharacterVariant(ball) {
+  if (!ball.weapon) {
+    return "stand";
+  }
+
+  if (ball.weapon.type === "machineGun") {
+    return "machineGun";
+  }
+
+  if (ball.weapon.type === "sniper") {
+    return "sniper";
+  }
+
+  return "gun";
+}
+
+function drawRoomCharacter(ball) {
+  const variant = getRoomCharacterVariant(ball);
+  const image = roomAssets.characters[ball.team][variant] ?? roomAssets.characters[ball.team].stand;
+  const aimAngle = getWeaponAimAngle(ball);
+  const config = teamConfig[ball.team];
+
+  if (!image?.complete || image.naturalWidth === 0) {
+    context.beginPath();
+    context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    context.fillStyle = config.color;
+    context.fill();
+    return;
+  }
+
+  const scale = ball.weapon ? 1.04 : 1.12;
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+
+  context.save();
+  context.translate(ball.x, ball.y);
+  context.rotate(aimAngle);
+  context.imageSmoothingEnabled = false;
+
+  context.beginPath();
+  context.ellipse(-4, 4, width * 0.38, height * 0.34, 0, 0, Math.PI * 2);
+  context.fillStyle = "rgba(0, 0, 0, 0.3)";
+  context.fill();
+
+  context.drawImage(image, -width / 2, -height / 2, width, height);
+  context.restore();
+
+  context.beginPath();
+  context.arc(ball.x, ball.y, ball.radius + 7, 0, Math.PI * 2);
+  context.strokeStyle = ball.team === "red"
+    ? "rgba(255, 59, 77, 0.44)"
+    : "rgba(47, 125, 255, 0.44)";
+  context.lineWidth = 2;
+  context.stroke();
+
+  if (ball.weapon && ball.weapon.type === "shotgun") {
+    const mountX = ball.x + Math.cos(aimAngle) * 21;
+    const mountY = ball.y + Math.sin(aimAngle) * 21;
+    drawRoomWeaponImage("shotgun", mountX, mountY, 24, aimAngle);
+  }
+}
+
+function drawRoomBalls() {
+  for (const ball of state.balls) {
+    if (!ball.alive) {
+      continue;
+    }
+
+    drawRoomCharacter(ball);
+
+    const healthWidth = 38;
+    context.fillStyle = "rgba(0, 0, 0, 0.48)";
+    context.fillRect(ball.x - healthWidth / 2, ball.y - 30, healthWidth, 4);
+    context.fillStyle = ball.health > 34 ? "#3ddc97" : "#ffd166";
+    context.fillRect(
+      ball.x - healthWidth / 2,
+      ball.y - 30,
+      healthWidth * Math.max(0, ball.health / maxHealth),
+      4,
+    );
+
+    if (ball.shieldCharges > 0) {
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius + 11, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(61, 220, 151, 0.72)";
+      context.lineWidth = 3;
+      context.stroke();
+    }
+
+    if (ball.ambushMode) {
+      context.beginPath();
+      context.arc(ball.x, ball.y, ball.radius + 14, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(8, 10, 16, 0.88)";
+      context.lineWidth = 4;
+      context.stroke();
+    }
+  }
+}
+
 function drawBalls() {
+  if (isRoomMode()) {
+    drawRoomBalls();
+    return;
+  }
+
   for (const ball of state.balls) {
     if (!ball.alive) {
       continue;
@@ -2323,5 +2600,6 @@ window.addEventListener("resize", () => {
   drawGame();
 });
 
+loadRoomAssets();
 resizeCanvas();
 resetGame();

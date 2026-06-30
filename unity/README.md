@@ -41,6 +41,13 @@ CQB Prototype > Run Prototype Smoke Test
 - 四隊自動移動角色，每隊三名
 - 基礎 CQB 交火：角色看見敵人會停止移動、轉向、射擊，並顯示短暫彈道線
 
+## 專案檔案注意
+
+- `Assets` 內的 `.meta` 檔請保留，這是 Unity 用來固定素材與腳本 GUID 的檔案。
+- `CqbPrototype.Runtime.asmdef` 放遊戲執行腳本。
+- `CqbPrototype.Editor.asmdef` 放 Unity Editor 選單與測試工具。
+- `Library/`、`Temp/`、`Logs/` 不需要提交，已由 `.gitignore` 排除。
+
 ## 視角設定
 
 目前建議值：

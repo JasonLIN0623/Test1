@@ -372,6 +372,7 @@ body.room-mode .game-shell {
   max-width: none;
   padding: 10px 14px;
   gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
 }
 
 body.room-mode .hud {
@@ -384,7 +385,7 @@ body.room-mode .round-panel {
 }
 
 body.room-mode .arena-wrap {
-  min-height: min(72vh, calc(100vh - 260px));
+  min-height: min(78vh, calc(100vh - 220px));
 }
 
 body.room-mode #gameCanvas {
@@ -398,11 +399,16 @@ body.room-mode .team-views {
 }
 
 body.room-mode .view-panel {
-  padding: 8px;
+  padding: 6px;
 }
 
 body.room-mode .view-panel canvas {
   aspect-ratio: 16 / 9;
+}
+
+body.room-mode .view-title {
+  margin-bottom: 6px;
+  font-size: 0.72rem;
 }
 
 body.room-mode .controls {
@@ -416,7 +422,7 @@ body.room-mode .controls {
   }
 
   body.room-mode .arena-wrap {
-    min-height: min(66vh, calc(100vh - 300px));
+    min-height: min(68vh, calc(100vh - 290px));
   }
 
   body.room-mode .controls {

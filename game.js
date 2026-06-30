@@ -126,6 +126,13 @@ const roomScale = 1.1;
 const roomScaleCenter = { x: 450, y: 450 };
 const room3DScale = 0.08;
 const showRoomAiRoutes = false;
+const room3DViewConfig = {
+  cameraPosition: { x: 22, y: 92, z: 38 },
+  cameraTarget: { x: 0, y: 0, z: 0 },
+  viewHeight: 82,
+  near: 0.1,
+  far: 320,
+};
 
 function scaleRoomNumber(value, axis) {
   return Math.round(roomScaleCenter[axis] + (value - roomScaleCenter[axis]) * roomScale);
@@ -3037,13 +3044,21 @@ function ensureRoom3DScene() {
   room3dStage.textContent = "";
   room3dStage.appendChild(renderer.domElement);
 
-  const camera = new THREE.OrthographicCamera(-44, 44, 34, -34, 0.1, 300);
-  camera.position.set(46, 56, 62);
-  camera.lookAt(0, 0, 0);
+  const camera = new THREE.OrthographicCamera(-44, 44, 34, -34, room3DViewConfig.near, room3DViewConfig.far);
+  camera.position.set(
+    room3DViewConfig.cameraPosition.x,
+    room3DViewConfig.cameraPosition.y,
+    room3DViewConfig.cameraPosition.z,
+  );
+  camera.lookAt(
+    room3DViewConfig.cameraTarget.x,
+    room3DViewConfig.cameraTarget.y,
+    room3DViewConfig.cameraTarget.z,
+  );
 
   const ambient = new THREE.HemisphereLight(0xfff0cf, 0x803b39, 2.2);
   const keyLight = new THREE.DirectionalLight(0xffffff, 2.25);
-  keyLight.position.set(22, 42, 28);
+  keyLight.position.set(18, 58, 26);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.width = 2048;
   keyLight.shadow.mapSize.height = 2048;
@@ -3128,7 +3143,7 @@ function resizeRoom3DRenderer() {
   }
 
   const aspect = width / height;
-  const viewHeight = 74;
+  const viewHeight = room3DViewConfig.viewHeight;
   room3DState.lastWidth = width;
   room3DState.lastHeight = height;
   room3DState.renderer.setSize(width, height, false);

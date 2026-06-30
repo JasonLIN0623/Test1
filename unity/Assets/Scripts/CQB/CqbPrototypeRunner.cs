@@ -105,6 +105,9 @@ namespace CqbPrototype
                     CqbWaypointAgent agent = agentObject.AddComponent<CqbWaypointAgent>();
                     agent.SetRoute(OffsetRoute(route, memberIndex));
                     agent.SetMoveSpeed(agentMoveSpeed + memberIndex * 0.15f);
+
+                    CqbCombatAgent combatAgent = agentObject.AddComponent<CqbCombatAgent>();
+                    combatAgent.Initialize(teamIndex);
                 }
             }
         }

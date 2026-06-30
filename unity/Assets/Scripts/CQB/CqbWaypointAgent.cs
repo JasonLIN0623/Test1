@@ -12,6 +12,7 @@ namespace CqbPrototype
 
         private Vector3[] runtimeWaypoints;
         private int waypointIndex;
+        private bool movementPaused;
 
         public void SetRoute(Vector3[] route)
         {
@@ -24,8 +25,18 @@ namespace CqbPrototype
             moveSpeed = speed;
         }
 
+        public void SetMovementPaused(bool paused)
+        {
+            movementPaused = paused;
+        }
+
         private void Update()
         {
+            if (movementPaused)
+            {
+                return;
+            }
+
             int routeLength = GetRouteLength();
             if (routeLength == 0)
             {

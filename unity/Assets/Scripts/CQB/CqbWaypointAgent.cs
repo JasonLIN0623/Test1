@@ -4,7 +4,7 @@ namespace CqbPrototype
 {
     public sealed class CqbWaypointAgent : MonoBehaviour
     {
-        [SerializeField] private Transform[] waypoints;
+        [SerializeField] private Transform[] waypoints = { };
         [SerializeField] private float moveSpeed = 4.2f;
         [SerializeField] private float turnSpeed = 10f;
         [SerializeField] private float arriveDistance = 0.35f;

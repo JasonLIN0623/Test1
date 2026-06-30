@@ -8,11 +8,11 @@ namespace CqbPrototype
         private const float WorldScale = 0.08f;
         private static readonly Vector2 PrototypeCenter = new Vector2(450f, 450f);
 
-        [SerializeField] private Material floorMaterial;
-        [SerializeField] private Material baseMaterial;
-        [SerializeField] private Material wallMaterial;
-        [SerializeField] private Material outerWallMaterial;
-        [SerializeField] private Material spawnMarkerMaterial;
+        [SerializeField] private Material floorMaterial = null;
+        [SerializeField] private Material baseMaterial = null;
+        [SerializeField] private Material wallMaterial = null;
+        [SerializeField] private Material outerWallMaterial = null;
+        [SerializeField] private Material spawnMarkerMaterial = null;
 
         private static readonly RectSpec Bounds = new RectSpec(100f, 80f, 700f, 760f);
 

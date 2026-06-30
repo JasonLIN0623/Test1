@@ -15,6 +15,24 @@
 4. 開啟後，在 Unity 上方選單點：`CQB Prototype > Create Playable Prototype Scene`
 5. 按 Play。
 
+如果想把場景存進專案，請點：
+
+```text
+CQB Prototype > Create And Save Prototype Scene
+```
+
+這會儲存到：
+
+```text
+Assets/Scenes/CQBPrototype.unity
+```
+
+如果想先確認基本物件是否有建立，請點：
+
+```text
+CQB Prototype > Run Prototype Smoke Test
+```
+
 按 Play 後會自動建立：
 
 - CQB 房間地圖

@@ -1,19 +1,25 @@
 # Unity 移植包
 
-這個資料夾是把目前網頁原型搬到 Unity 用的第一版資料。目標不是一次重做完整遊戲，而是先把核心方向固定：
+這個資料夾是把目前網頁原型搬到 Unity 用的第一版專案骨架。目標不是一次重做完整遊戲，而是先把核心方向固定：
 
 - 視角：俯視但鏡頭往下斜看，接近 Doorkickers 2 / CQB 沙盤感。
 - 地圖：沿用目前房間戰的大型 CQB 平面配置，用 Unity cube 建出地板、外框與牆。
-- 角色：先用自動 waypoint 移動，之後再接上更完整的戰術 AI、射擊、視線判定。
+- 角色：先用自動 waypoint 移動，四隊會從不同角落出發，之後再接上更完整的戰術 AI、射擊、視線判定。
 
 ## 使用方式
 
-1. 用 Unity Hub 建立一個 3D 專案。
-2. 把這個 `unity/Assets` 資料夾複製到 Unity 專案根目錄。
-3. 建立空場景，新增一個空物件 `CQB Prototype`。
-4. 掛上 `CqbPrototypeMapBuilder`，按 Play 後會產生地圖。
-5. 場景 Camera 掛上 `CqbTopDownCamera`。
-6. 若要測試角色移動，建立 Capsule 或簡單角色物件，掛上 `CqbWaypointAgent`，並指定 waypoint。
+1. 開啟 Unity Hub。
+2. 選擇 Add project from disk。
+3. 選這個資料夾：`unity/`
+4. 開啟後，在 Unity 上方選單點：`CQB Prototype > Create Playable Prototype Scene`
+5. 按 Play。
+
+按 Play 後會自動建立：
+
+- CQB 房間地圖
+- 俯視斜角 Camera
+- 主要光源
+- 四隊自動移動角色，每隊三名
 
 ## 視角設定
 
@@ -36,7 +42,7 @@
 
 ## 下一步
 
-- 把現有四隊出生點轉成 Unity spawner。
+- 把目前的 waypoint 角色升級成 NavMesh 或自製格點尋路。
 - 把網頁版視線判定搬成 Unity raycast。
 - 把武器射擊改成 Unity projectile 或 hitscan。
-- 把 waypoint 移動升級成 NavMesh 或自製格點尋路，避免角色撞牆卡住。
+- 把四隊交戰、命中、血量與槍聲接進 Unity。

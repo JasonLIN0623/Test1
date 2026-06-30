@@ -2,3 +2,10 @@
 node_modules/
 dist/
 .env
+unity/Library/
+unity/Logs/
+unity/Temp/
+unity/Obj/
+unity/Build/
+unity/Builds/
+unity/UserSettings/

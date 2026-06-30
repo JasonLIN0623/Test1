@@ -10,23 +10,30 @@ namespace CqbPrototype
         [SerializeField] private float arriveDistance = 0.35f;
         [SerializeField] private bool loopRoute = true;
 
+        private Vector3[] runtimeWaypoints;
         private int waypointIndex;
+
+        public void SetRoute(Vector3[] route)
+        {
+            runtimeWaypoints = route;
+            waypointIndex = 0;
+        }
+
+        public void SetMoveSpeed(float speed)
+        {
+            moveSpeed = speed;
+        }
 
         private void Update()
         {
-            if (waypoints == null || waypoints.Length == 0)
+            int routeLength = GetRouteLength();
+            if (routeLength == 0)
             {
                 return;
             }
 
-            Transform target = waypoints[waypointIndex];
-            if (target == null)
-            {
-                AdvanceWaypoint();
-                return;
-            }
-
-            Vector3 flatTarget = new Vector3(target.position.x, transform.position.y, target.position.z);
+            Vector3 targetPosition = GetWaypointPosition(waypointIndex);
+            Vector3 flatTarget = new Vector3(targetPosition.x, transform.position.y, targetPosition.z);
             Vector3 toTarget = flatTarget - transform.position;
 
             if (toTarget.magnitude <= arriveDistance)
@@ -41,18 +48,40 @@ namespace CqbPrototype
             transform.position += direction * moveSpeed * Time.deltaTime;
         }
 
+        private int GetRouteLength()
+        {
+            if (runtimeWaypoints != null && runtimeWaypoints.Length > 0)
+            {
+                return runtimeWaypoints.Length;
+            }
+
+            return waypoints == null ? 0 : waypoints.Length;
+        }
+
+        private Vector3 GetWaypointPosition(int index)
+        {
+            if (runtimeWaypoints != null && runtimeWaypoints.Length > 0)
+            {
+                return runtimeWaypoints[index];
+            }
+
+            Transform target = waypoints[index];
+            return target == null ? transform.position : target.position;
+        }
+
         private void AdvanceWaypoint()
         {
-            if (waypoints.Length == 0)
+            int routeLength = GetRouteLength();
+            if (routeLength == 0)
             {
                 return;
             }
 
             waypointIndex += 1;
 
-            if (waypointIndex >= waypoints.Length)
+            if (waypointIndex >= routeLength)
             {
-                waypointIndex = loopRoute ? 0 : waypoints.Length - 1;
+                waypointIndex = loopRoute ? 0 : routeLength - 1;
             }
         }
     }

@@ -12,8 +12,16 @@
 1. 開啟 Unity Hub。
 2. 選擇 Add project from disk。
 3. 選這個資料夾：`unity/`
-4. 開啟後，在 Unity 上方選單點：`CQB Prototype > Create Playable Prototype Scene`
+4. 開啟場景：`Assets/Scenes/CQBPrototype.unity`
 5. 按 Play。
+
+這個場景已經包含：
+
+- `CQB Prototype Runner`
+- `Top Down Tactical Camera`
+- `Key Light`
+
+按 Play 後 Runner 會自動產生 CQB 地圖與角色。
 
 如果想把場景存進專案，請點：
 

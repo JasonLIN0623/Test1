@@ -12,6 +12,10 @@ RUNTIME_OUT="${TMPDIR:-/tmp}/CqbRuntimeCheck.dll"
 EDITOR_OUT="${TMPDIR:-/tmp}/CqbEditorCheck.dll"
 RUNTIME_REFS="${TMPDIR:-/tmp}/cqb-csc-runtime-refs.rsp"
 EDITOR_REFS="${TMPDIR:-/tmp}/cqb-csc-editor-refs.rsp"
+SCENE_FILE="$PROJECT_DIR/Assets/Scenes/CQBPrototype.unity"
+BUILD_SETTINGS="$PROJECT_DIR/ProjectSettings/EditorBuildSettings.asset"
+RUNNER_GUID="d0af8f59688c4915b9a8bc1c571be10a"
+CAMERA_GUID="72c2f0c23a7a4952b778b14f778cf403"
 
 if [[ ! -x "$MONO" || ! -f "$CSC_DLL" ]]; then
   echo "Unity C# compiler was not found. Set UNITY_EDITOR to the installed Unity executable."
@@ -53,6 +57,26 @@ if [[ "$missing_meta_count" != "0" ]]; then
     | while read -r asset; do
         [[ -f "$asset.meta" ]] || echo "missing meta: $asset"
       done
+  exit 1
+fi
+
+if [[ ! -f "$SCENE_FILE" ]]; then
+  echo "Unity scene is missing: $SCENE_FILE"
+  exit 1
+fi
+
+if ! grep -q "$RUNNER_GUID" "$SCENE_FILE"; then
+  echo "Unity scene does not reference CqbPrototypeRunner."
+  exit 1
+fi
+
+if ! grep -q "$CAMERA_GUID" "$SCENE_FILE"; then
+  echo "Unity scene does not reference CqbTopDownCamera."
+  exit 1
+fi
+
+if [[ ! -f "$BUILD_SETTINGS" ]] || ! grep -q 'Assets/Scenes/CQBPrototype.unity' "$BUILD_SETTINGS"; then
+  echo "Unity build settings do not include the prototype scene."
   exit 1
 fi
 

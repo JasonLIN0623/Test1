@@ -163,70 +163,55 @@ function scaleRoomMap(map) {
 const roomMap = scaleRoomMap({
   bounds: { x: 100, y: 80, width: 700, height: 760 },
   walls: [
-    { x: 145, y: 80, width: 10, height: 106, color: "#101010" },
-    { x: 100, y: 210, width: 82, height: 10, color: "#101010" },
-    { x: 650, y: 80, width: 10, height: 70, color: "#101010" },
-    { x: 742, y: 210, width: 58, height: 10, color: "#101010" },
-    { x: 145, y: 734, width: 10, height: 106, color: "#101010" },
-    { x: 100, y: 690, width: 210, height: 10, color: "#101010" },
-    { x: 350, y: 724, width: 10, height: 116, color: "#101010" },
-    { x: 650, y: 770, width: 10, height: 70, color: "#101010" },
-    { x: 690, y: 690, width: 110, height: 10, color: "#101010" },
-    { x: 560, y: 724, width: 10, height: 116, color: "#101010" },
-    { x: 175, y: 210, width: 58, height: 8, color: "#1e58c8" },
-    { x: 235, y: 210, width: 70, height: 8, color: "#e5df22" },
-    { x: 305, y: 210, width: 66, height: 8, color: "#1e58c8" },
-    { x: 435, y: 88, width: 8, height: 76, color: "#e5df22" },
-    { x: 435, y: 238, width: 8, height: 36, color: "#1e58c8" },
-    { x: 443, y: 274, width: 60, height: 8, color: "#ff6f73" },
-    { x: 528, y: 176, width: 8, height: 66, color: "#b24aa4" },
-    { x: 528, y: 242, width: 54, height: 8, color: "#b05b36" },
-    { x: 635, y: 250, width: 8, height: 58, color: "#179b4a" },
-    { x: 635, y: 250, width: 62, height: 8, color: "#b24aa4" },
-    { x: 742, y: 250, width: 8, height: 62, color: "#ff6f73" },
-    { x: 704, y: 312, width: 46, height: 8, color: "#ff6f73" },
-    { x: 156, y: 250, width: 8, height: 60, color: "#b24aa4" },
-    { x: 156, y: 250, width: 58, height: 8, color: "#b24aa4" },
-    { x: 102, y: 342, width: 44, height: 8, color: "#b24aa4" },
-    { x: 150, y: 342, width: 8, height: 78, color: "#1e58c8" },
-    { x: 205, y: 400, width: 92, height: 8, color: "#b24aa4" },
-    { x: 296, y: 342, width: 8, height: 66, color: "#b24aa4" },
-    { x: 330, y: 342, width: 8, height: 58, color: "#b24aa4" },
-    { x: 330, y: 414, width: 130, height: 8, color: "#b24aa4" },
-    { x: 500, y: 414, width: 68, height: 8, color: "#e5322d" },
-    { x: 370, y: 472, width: 112, height: 8, color: "#e5322d" },
-    { x: 520, y: 472, width: 112, height: 8, color: "#e5322d" },
-    { x: 406, y: 306, width: 8, height: 64, color: "#1e58c8" },
-    { x: 468, y: 306, width: 8, height: 64, color: "#1e58c8" },
-    { x: 406, y: 370, width: 70, height: 8, color: "#ff6f73" },
-    { x: 536, y: 308, width: 8, height: 56, color: "#6e6f72" },
-    { x: 584, y: 308, width: 8, height: 56, color: "#6e6f72" },
-    { x: 536, y: 364, width: 56, height: 8, color: "#6e6f72" },
-    { x: 585, y: 400, width: 92, height: 8, color: "#ff6f73" },
-    { x: 695, y: 342, width: 8, height: 56, color: "#b24aa4" },
-    { x: 696, y: 488, width: 8, height: 76, color: "#b24aa4" },
-    { x: 704, y: 500, width: 86, height: 8, color: "#1e58c8" },
-    { x: 198, y: 500, width: 96, height: 8, color: "#e5322d" },
-    { x: 198, y: 518, width: 8, height: 78, color: "#b24aa4" },
-    { x: 102, y: 592, width: 88, height: 8, color: "#b24aa4" },
-    { x: 156, y: 600, width: 8, height: 88, color: "#b24aa4" },
-    { x: 262, y: 548, width: 118, height: 8, color: "#e5322d" },
-    { x: 314, y: 556, width: 8, height: 80, color: "#b24aa4" },
-    { x: 400, y: 580, width: 8, height: 68, color: "#1e58c8" },
-    { x: 400, y: 580, width: 76, height: 8, color: "#ff6f73" },
-    { x: 476, y: 580, width: 8, height: 68, color: "#1e58c8" },
-    { x: 536, y: 580, width: 8, height: 58, color: "#6e6f72" },
-    { x: 584, y: 580, width: 8, height: 58, color: "#6e6f72" },
-    { x: 632, y: 548, width: 96, height: 8, color: "#ff6f73" },
-    { x: 744, y: 558, width: 8, height: 88, color: "#ff6f73" },
-    { x: 635, y: 638, width: 8, height: 70, color: "#b24aa4" },
-    { x: 635, y: 708, width: 58, height: 8, color: "#b24aa4" },
-    { x: 740, y: 642, width: 8, height: 92, color: "#ff6f73" },
-    { x: 704, y: 734, width: 44, height: 8, color: "#ff6f73" },
-    { x: 260, y: 642, width: 8, height: 58, color: "#179b4a" },
-    { x: 268, y: 642, width: 54, height: 8, color: "#8a5520" },
-    { x: 520, y: 690, width: 8, height: 72, color: "#6e6f72" },
-    { x: 520, y: 762, width: 34, height: 8, color: "#6e6f72" },
+    { x: 145, y: 80, width: 10, height: 130, color: "#20242d" },
+    { x: 100, y: 210, width: 92, height: 10, color: "#20242d" },
+    { x: 230, y: 210, width: 95, height: 10, color: "#20242d" },
+    { x: 650, y: 80, width: 10, height: 120, color: "#20242d" },
+    { x: 575, y: 210, width: 90, height: 10, color: "#20242d" },
+    { x: 720, y: 210, width: 80, height: 10, color: "#20242d" },
+    { x: 145, y: 710, width: 10, height: 130, color: "#20242d" },
+    { x: 100, y: 690, width: 96, height: 10, color: "#20242d" },
+    { x: 255, y: 690, width: 105, height: 10, color: "#20242d" },
+    { x: 650, y: 720, width: 10, height: 120, color: "#20242d" },
+    { x: 560, y: 690, width: 96, height: 10, color: "#20242d" },
+    { x: 715, y: 690, width: 85, height: 10, color: "#20242d" },
+
+    { x: 435, y: 88, width: 8, height: 96, color: "#394050" },
+    { x: 435, y: 232, width: 8, height: 72, color: "#394050" },
+    { x: 528, y: 150, width: 8, height: 96, color: "#394050" },
+    { x: 528, y: 246, width: 72, height: 8, color: "#394050" },
+    { x: 260, y: 250, width: 8, height: 72, color: "#394050" },
+    { x: 635, y: 250, width: 8, height: 72, color: "#394050" },
+
+    { x: 160, y: 320, width: 80, height: 8, color: "#394050" },
+    { x: 300, y: 320, width: 95, height: 8, color: "#394050" },
+    { x: 505, y: 320, width: 115, height: 8, color: "#394050" },
+    { x: 690, y: 320, width: 70, height: 8, color: "#394050" },
+    { x: 150, y: 360, width: 8, height: 88, color: "#394050" },
+    { x: 296, y: 360, width: 8, height: 88, color: "#394050" },
+    { x: 695, y: 360, width: 8, height: 88, color: "#394050" },
+
+    { x: 405, y: 370, width: 8, height: 78, color: "#7f464a" },
+    { x: 485, y: 370, width: 8, height: 78, color: "#7f464a" },
+    { x: 405, y: 448, width: 88, height: 8, color: "#7f464a" },
+    { x: 560, y: 400, width: 8, height: 78, color: "#7f464a" },
+    { x: 640, y: 400, width: 8, height: 78, color: "#7f464a" },
+    { x: 560, y: 400, width: 88, height: 8, color: "#7f464a" },
+
+    { x: 180, y: 500, width: 110, height: 8, color: "#394050" },
+    { x: 350, y: 500, width: 130, height: 8, color: "#394050" },
+    { x: 530, y: 500, width: 120, height: 8, color: "#394050" },
+    { x: 700, y: 500, width: 80, height: 8, color: "#394050" },
+    { x: 198, y: 520, width: 8, height: 86, color: "#394050" },
+    { x: 744, y: 548, width: 8, height: 104, color: "#394050" },
+
+    { x: 190, y: 590, width: 100, height: 8, color: "#394050" },
+    { x: 360, y: 590, width: 90, height: 8, color: "#394050" },
+    { x: 520, y: 590, width: 120, height: 8, color: "#394050" },
+    { x: 700, y: 590, width: 55, height: 8, color: "#394050" },
+    { x: 315, y: 555, width: 8, height: 85, color: "#394050" },
+    { x: 400, y: 620, width: 8, height: 82, color: "#394050" },
+    { x: 520, y: 620, width: 8, height: 82, color: "#394050" },
   ],
   doors: [],
   spawnZones: {
@@ -277,31 +262,31 @@ const roomMazeWaypoints = [
   { x: 360, y: 280 },
   { x: 560, y: 280 },
   { x: 600, y: 280 },
-  { x: 200, y: 320 },
-  { x: 320, y: 320 },
+  { x: 200, y: 360 },
+  { x: 340, y: 360 },
   { x: 400, y: 280 },
   { x: 240, y: 360 },
   { x: 640, y: 360 },
   { x: 760, y: 360 },
-  { x: 200, y: 440 },
-  { x: 280, y: 440 },
-  { x: 480, y: 440 },
-  { x: 600, y: 440 },
-  { x: 680, y: 440 },
+  { x: 200, y: 450 },
+  { x: 240, y: 450 },
+  { x: 520, y: 450 },
+  { x: 600, y: 535 },
+  { x: 680, y: 470 },
   { x: 760, y: 440 },
   { x: 160, y: 520 },
-  { x: 320, y: 520 },
-  { x: 440, y: 520 },
-  { x: 560, y: 520 },
-  { x: 640, y: 520 },
+  { x: 340, y: 540 },
+  { x: 440, y: 545 },
+  { x: 590, y: 535 },
+  { x: 640, y: 545 },
   { x: 160, y: 560 },
   { x: 520, y: 560 },
   { x: 160, y: 560 },
-  { x: 360, y: 600 },
-  { x: 640, y: 600 },
+  { x: 360, y: 560 },
+  { x: 600, y: 560 },
   { x: 680, y: 600 },
   { x: 200, y: 720 },
-  { x: 360, y: 640 },
+  { x: 360, y: 560 },
   { x: 440, y: 640 },
   { x: 680, y: 640 },
   { x: 400, y: 720 },
@@ -319,10 +304,10 @@ const roomBreachRoutes = {
       { x: 240, y: 160 },
       { x: 400, y: 160 },
       { x: 400, y: 240 },
-      { x: 320, y: 320 },
-      { x: 280, y: 440 },
-      { x: 440, y: 520 },
-      { x: 640, y: 600 },
+      { x: 340, y: 360 },
+      { x: 240, y: 450 },
+      { x: 440, y: 545 },
+      { x: 600, y: 560 },
       { x: 720, y: 780 },
     ],
     [
@@ -331,14 +316,14 @@ const roomBreachRoutes = {
       { x: 480, y: 240 },
       { x: 560, y: 280 },
       { x: 640, y: 360 },
-      { x: 680, y: 440 },
-      { x: 640, y: 520 },
+      { x: 680, y: 470 },
+      { x: 640, y: 545 },
     ],
     [
       { x: 240, y: 160 },
       { x: 240, y: 280 },
-      { x: 200, y: 320 },
-      { x: 200, y: 440 },
+      { x: 200, y: 360 },
+      { x: 200, y: 450 },
       { x: 160, y: 520 },
       { x: 160, y: 560 },
       { x: 440, y: 720 },
@@ -350,9 +335,9 @@ const roomBreachRoutes = {
       { x: 600, y: 160 },
       { x: 600, y: 280 },
       { x: 640, y: 360 },
-      { x: 680, y: 440 },
-      { x: 640, y: 520 },
-      { x: 360, y: 600 },
+      { x: 680, y: 470 },
+      { x: 640, y: 545 },
+      { x: 360, y: 560 },
       { x: 240, y: 760 },
     ],
     [
@@ -360,15 +345,15 @@ const roomBreachRoutes = {
       { x: 600, y: 160 },
       { x: 480, y: 240 },
       { x: 400, y: 280 },
-      { x: 480, y: 440 },
-      { x: 440, y: 520 },
-      { x: 360, y: 640 },
+      { x: 520, y: 450 },
+      { x: 440, y: 545 },
+      { x: 360, y: 560 },
     ],
     [
       { x: 720, y: 160 },
       { x: 760, y: 360 },
       { x: 760, y: 440 },
-      { x: 640, y: 520 },
+      { x: 640, y: 545 },
       { x: 520, y: 560 },
       { x: 440, y: 640 },
       { x: 320, y: 760 },
@@ -377,11 +362,11 @@ const roomBreachRoutes = {
   green: [
     [
       { x: 240, y: 760 },
-      { x: 360, y: 640 },
-      { x: 360, y: 600 },
-      { x: 320, y: 520 },
-      { x: 280, y: 440 },
-      { x: 320, y: 320 },
+      { x: 360, y: 560 },
+      { x: 360, y: 560 },
+      { x: 340, y: 540 },
+      { x: 240, y: 450 },
+      { x: 340, y: 360 },
       { x: 400, y: 240 },
       { x: 720, y: 160 },
     ],
@@ -389,7 +374,7 @@ const roomBreachRoutes = {
       { x: 240, y: 760 },
       { x: 160, y: 560 },
       { x: 160, y: 520 },
-      { x: 200, y: 440 },
+      { x: 200, y: 450 },
       { x: 240, y: 360 },
       { x: 360, y: 280 },
       { x: 480, y: 160 },
@@ -399,7 +384,7 @@ const roomBreachRoutes = {
       { x: 400, y: 720 },
       { x: 440, y: 640 },
       { x: 520, y: 560 },
-      { x: 640, y: 520 },
+      { x: 640, y: 545 },
       { x: 760, y: 440 },
       { x: 720, y: 160 },
     ],
@@ -409,8 +394,8 @@ const roomBreachRoutes = {
       { x: 720, y: 780 },
       { x: 600, y: 760 },
       { x: 680, y: 640 },
-      { x: 640, y: 520 },
-      { x: 680, y: 440 },
+      { x: 640, y: 545 },
+      { x: 680, y: 470 },
       { x: 640, y: 360 },
       { x: 600, y: 280 },
       { x: 240, y: 160 },
@@ -418,9 +403,9 @@ const roomBreachRoutes = {
     [
       { x: 720, y: 780 },
       { x: 680, y: 600 },
-      { x: 640, y: 520 },
-      { x: 560, y: 520 },
-      { x: 480, y: 440 },
+      { x: 640, y: 545 },
+      { x: 590, y: 535 },
+      { x: 520, y: 450 },
       { x: 400, y: 280 },
       { x: 400, y: 240 },
     ],
@@ -429,8 +414,8 @@ const roomBreachRoutes = {
       { x: 600, y: 760 },
       { x: 480, y: 720 },
       { x: 440, y: 640 },
-      { x: 320, y: 520 },
-      { x: 200, y: 440 },
+      { x: 340, y: 540 },
+      { x: 200, y: 450 },
       { x: 240, y: 280 },
     ],
   ],
@@ -1250,8 +1235,8 @@ function getCircleRectCollision(circle, rect) {
 }
 
 function resolveBallAgainstRect(ball, rect, options = {}) {
-  const { bounce = true } = options;
-  const collision = getCircleRectCollision(ball, rect);
+  const { bounce = true, radiusPadding = 0 } = options;
+  const collision = getCircleRectCollision({ ...ball, radius: ball.radius + radiusPadding }, rect);
 
   if (!collision) {
     return false;
@@ -1313,30 +1298,31 @@ function updateRoomDoors(deltaSeconds) {
 
 function resolveBallAgainstRoomMap(ball) {
   const { bounds } = roomMap;
+  const clearanceRadius = ball.radius + 2;
   let touched = false;
 
-  if (ball.x < bounds.x + ball.radius) {
-    ball.x = bounds.x + ball.radius;
+  if (ball.x < bounds.x + clearanceRadius) {
+    ball.x = bounds.x + clearanceRadius;
     ball.vx = Math.max(0, ball.vx) * 0.42;
     touched = true;
-  } else if (ball.x > bounds.x + bounds.width - ball.radius) {
-    ball.x = bounds.x + bounds.width - ball.radius;
+  } else if (ball.x > bounds.x + bounds.width - clearanceRadius) {
+    ball.x = bounds.x + bounds.width - clearanceRadius;
     ball.vx = Math.min(0, ball.vx) * 0.42;
     touched = true;
   }
 
-  if (ball.y < bounds.y + ball.radius) {
-    ball.y = bounds.y + ball.radius;
+  if (ball.y < bounds.y + clearanceRadius) {
+    ball.y = bounds.y + clearanceRadius;
     ball.vy = Math.max(0, ball.vy) * 0.42;
     touched = true;
-  } else if (ball.y > bounds.y + bounds.height - ball.radius) {
-    ball.y = bounds.y + bounds.height - ball.radius;
+  } else if (ball.y > bounds.y + bounds.height - clearanceRadius) {
+    ball.y = bounds.y + bounds.height - clearanceRadius;
     ball.vy = Math.min(0, ball.vy) * 0.42;
     touched = true;
   }
 
   for (const wall of roomMap.walls) {
-    touched = resolveBallAgainstRect(ball, wall, { bounce: false }) || touched;
+    touched = resolveBallAgainstRect(ball, wall, { bounce: false, radiusPadding: 2 }) || touched;
   }
 
   for (const door of getRoomDoors()) {
@@ -2066,9 +2052,118 @@ function getRoomSteeringDirection(ball, desiredDirection) {
   };
 }
 
+function getRoomNavigationPoints() {
+  const uniquePoints = new Map();
+  const sourcePoints = [...roomMazeWaypoints, ...getRoomPatrolPoints(), ...getRoomCoverPoints()];
+
+  for (const point of sourcePoints) {
+    if (!isPointInRoomMap(point, 24)) {
+      continue;
+    }
+
+    uniquePoints.set(`${Math.round(point.x)}:${Math.round(point.y)}`, point);
+  }
+
+  return [...uniquePoints.values()];
+}
+
+function findRoomPathNextPoint(ball, destination) {
+  if (hasLineOfSight(ball, destination)) {
+    return destination;
+  }
+
+  const nodes = [ball, destination, ...getRoomNavigationPoints()];
+  const destinationIndex = 1;
+  const distances = nodes.map(() => Infinity);
+  const previous = nodes.map(() => -1);
+  const visited = nodes.map(() => false);
+  distances[0] = 0;
+
+  for (let step = 0; step < nodes.length; step += 1) {
+    let currentIndex = -1;
+    let currentDistance = Infinity;
+
+    for (let index = 0; index < nodes.length; index += 1) {
+      if (!visited[index] && distances[index] < currentDistance) {
+        currentDistance = distances[index];
+        currentIndex = index;
+      }
+    }
+
+    if (currentIndex === -1 || currentIndex === destinationIndex) {
+      break;
+    }
+
+    visited[currentIndex] = true;
+    const currentNode = nodes[currentIndex];
+
+    for (let nextIndex = 1; nextIndex < nodes.length; nextIndex += 1) {
+      if (visited[nextIndex] || currentIndex === nextIndex) {
+        continue;
+      }
+
+      const nextNode = nodes[nextIndex];
+      const distance = distanceBetween(currentNode, nextNode);
+      const canUseLongLeg = currentIndex === 0 || nextIndex === destinationIndex;
+
+      if (distance > (canUseLongLeg ? 320 : 230) || !hasLineOfSight(currentNode, nextNode)) {
+        continue;
+      }
+
+      const nextDistance = currentDistance + distance;
+      if (nextDistance < distances[nextIndex]) {
+        distances[nextIndex] = nextDistance;
+        previous[nextIndex] = currentIndex;
+      }
+    }
+  }
+
+  if (!Number.isFinite(distances[destinationIndex])) {
+    return null;
+  }
+
+  let nextIndex = destinationIndex;
+  while (previous[nextIndex] > 0) {
+    nextIndex = previous[nextIndex];
+  }
+
+  return nodes[nextIndex];
+}
+
+function findNearestRoomSafePoint(point, padding = 18) {
+  if (isPointInRoomMap(point, padding)) {
+    return point;
+  }
+
+  const directionCount = 16;
+  for (let radius = 10; radius <= 96; radius += 10) {
+    for (let index = 0; index < directionCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / directionCount;
+      const candidate = {
+        x: point.x + Math.cos(angle) * radius,
+        y: point.y + Math.sin(angle) * radius,
+      };
+
+      if (isPointInRoomMap(candidate, padding)) {
+        return candidate;
+      }
+    }
+  }
+
+  return getRoomNavigationPoints()
+    .filter((candidate) => isPointInRoomMap(candidate, padding))
+    .sort((a, b) => distanceBetween(point, a) - distanceBetween(point, b))[0]
+    ?? getRectCenter(roomMap.bounds);
+}
+
 function chooseRoomMovementPoint(ball, destination) {
   if (hasLineOfSight(ball, destination)) {
     return destination;
+  }
+
+  const pathPoint = findRoomPathNextPoint(ball, destination);
+  if (pathPoint) {
+    return pathPoint;
   }
 
   const currentDistance = distanceBetween(ball, destination);
@@ -2315,6 +2410,17 @@ function moveBalls(deltaSeconds) {
 
     if (isRoomMode()) {
       resolveBallAgainstRoomMap(ball);
+      if (!isPointInRoomMap(ball, ball.radius + 2)) {
+        const recoveryPoint = findNearestRoomSafePoint(
+          isPointInRoomMap(previousPosition, ball.radius + 2) ? previousPosition : ball,
+          ball.radius + 2,
+        );
+        ball.x = recoveryPoint.x;
+        ball.y = recoveryPoint.y;
+        ball.vx *= 0.22;
+        ball.vy *= 0.22;
+        ball.stopTimer = 0.12;
+      }
       const targetDistance = ball.patrolPoint ? distanceBetween(ball, ball.patrolPoint) : 0;
       const movedDistance = distanceBetween(previousPosition, ball);
 

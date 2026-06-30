@@ -33,6 +33,28 @@ Assets/Scenes/CQBPrototype.unity
 CQB Prototype > Run Prototype Smoke Test
 ```
 
+## 終端機檢查
+
+不用啟動 Unity、只檢查 C#、asmdef 和 `.meta`：
+
+```bash
+cd /Users/linchuanxuan/Desktop/個人資料整理/11_程式開發專案/game-2-unity-work/unity
+bash tools/check-unity-scripts.sh
+```
+
+用 Unity batch mode 產生並儲存場景：
+
+```bash
+cd /Users/linchuanxuan/Desktop/個人資料整理/11_程式開發專案/game-2-unity-work/unity
+bash tools/create-unity-scene.sh
+```
+
+如果 Unity 不在預設位置，可以指定：
+
+```bash
+UNITY_EDITOR="/Applications/Unity/Hub/Editor/你的版本/Unity.app/Contents/MacOS/Unity" bash tools/create-unity-scene.sh
+```
+
 按 Play 後會自動建立：
 
 - CQB 房間地圖
